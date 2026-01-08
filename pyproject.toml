@@ -4,18 +4,33 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+exclude = ["run_bitcoin_tests.validation_backup"]
 
 [project]
 name = "run-bitcoin-tests"
 version = "1.0.0"
 description = "A cross-platform Python script to run Bitcoin Core C++ unit tests using Docker"
 readme = "README.md"
-license = {file = "LICENSE.txt"}
+license = "MIT"
 requires-python = ">=3.10"
+authors = [
+    {name = "tboy1337", email = "tboy1337@example.com"},
+]
+maintainers = [
+    {name = "tboy1337", email = "tboy1337@example.com"},
+]
+keywords = [
+    "bitcoin",
+    "bitcoin-core",
+    "testing",
+    "docker",
+    "ci-cd",
+    "unit-tests",
+    "cross-platform",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -47,6 +62,9 @@ dev = [
     "pylint>=2.15.0",
     "mypy>=1.0.0",
     "autopep8>=2.0.0",
+
+    # Performance monitoring
+    "psutil>=5.9.0",
 
     # Code Formatting
     "black>=22.0.0",

@@ -40,11 +40,17 @@ Example Usage:
         print(f"SSL certificate error: {e}")
 """
 
+import hashlib
+import json
+import logging
+import shutil
 import subprocess
 import sys
+import tempfile
+import threading
 import time
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 from .logging_config import get_logger
@@ -101,6 +107,266 @@ class DiskSpaceError(NetworkError):
     pass
 
 
+class GitCache:
+    """
+    Thread-safe cache manager for Git repository clones.
+
+    Provides caching mechanisms to avoid re-downloading the same repository
+    and branch combinations, significantly improving performance for repeated
+    operations.
+
+    Features:
+    - Repository and branch hash-based caching
+    - Thread-safe operations
+    - Automatic cache validation and cleanup
+    - Configurable cache directory and size limits
+    """
+
+    _instance = None
+    _lock = threading.Lock()
+
+    def __init__(self, cache_dir: Optional[str] = None, max_cache_size_gb: float = 10.0):
+        """
+        Initialize the Git cache manager.
+
+        Args:
+            cache_dir: Directory to store cached repositories (default: ~/.bitcoin_test_cache)
+            max_cache_size_gb: Maximum cache size in GB (default: 10.0)
+        """
+        self.cache_dir = Path(cache_dir) if cache_dir else Path.home() / ".bitcoin_test_cache"
+        self.max_cache_size_gb = max_cache_size_gb
+        self.cache_metadata_file = self.cache_dir / "cache_metadata.json"
+        self._metadata_lock = threading.RLock()
+
+        # Create cache directory if it doesn't exist
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+
+        # Load existing metadata
+        self._metadata = self._load_metadata()
+
+    @classmethod
+    def get_instance(cls, cache_dir: Optional[str] = None, max_cache_size_gb: float = 10.0) -> 'GitCache':
+        """Get or create singleton instance of GitCache."""
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = cls(cache_dir, max_cache_size_gb)
+        return cls._instance
+
+    def _load_metadata(self) -> Dict[str, Dict]:
+        """Load cache metadata from disk."""
+        try:
+            if self.cache_metadata_file.exists():
+                with open(self.cache_metadata_file, 'r') as f:
+                    return json.load(f)
+        except (json.JSONDecodeError, IOError) as e:
+            logging.warning(f"Failed to load cache metadata: {e}")
+
+        return {}
+
+    def _save_metadata(self) -> None:
+        """Save cache metadata to disk."""
+        try:
+            with self._metadata_lock:
+                with open(self.cache_metadata_file, 'w') as f:
+                    json.dump(self._metadata, f, indent=2)
+        except IOError as e:
+            logging.warning(f"Failed to save cache metadata: {e}")
+
+    def _get_repo_hash(self, repo_url: str, branch: str) -> str:
+        """Generate a unique hash for repository and branch combination."""
+        content = f"{repo_url}@{branch}"
+        return hashlib.sha256(content.encode()).hexdigest()[:16]
+
+    def _get_cache_path(self, repo_hash: str) -> Path:
+        """Get the cache path for a repository hash."""
+        return self.cache_dir / repo_hash
+
+    def _cleanup_old_cache(self) -> None:
+        """Clean up old cache entries if cache size exceeds limit."""
+        try:
+            total_size = 0
+            cache_entries = []
+
+            # Calculate total cache size and collect entries
+            for item in self.cache_dir.iterdir():
+                if item.is_dir() and item != self.cache_metadata_file.parent:
+                    try:
+                        # Get directory size (simplified)
+                        size = sum(f.stat().st_size for f in item.rglob('*') if f.is_file())
+                        total_size += size
+                        cache_entries.append((item, size, item.stat().st_mtime))
+                    except OSError:
+                        continue
+
+            # Convert to GB
+            total_size_gb = total_size / (1024**3)
+
+            if total_size_gb > self.max_cache_size_gb:
+                # Sort by modification time (oldest first)
+                cache_entries.sort(key=lambda x: x[2])
+
+                # Remove oldest entries until under limit
+                target_size = self.max_cache_size_gb * 0.8  # Leave 20% headroom
+                for cache_path, size, _ in cache_entries:
+                    if total_size_gb <= target_size:
+                        break
+
+                    try:
+                        import shutil
+                        shutil.rmtree(cache_path)
+                        total_size_gb -= size / (1024**3)
+
+                        # Remove from metadata
+                        repo_hash = cache_path.name
+                        with self._metadata_lock:
+                            self._metadata.pop(repo_hash, None)
+
+                        logging.info(f"Cleaned up old cache entry: {repo_hash}")
+                    except OSError as e:
+                        logging.warning(f"Failed to remove cache entry {cache_path}: {e}")
+
+                self._save_metadata()
+
+        except Exception as e:
+            logging.warning(f"Cache cleanup failed: {e}")
+
+    def get_cached_repo(self, repo_url: str, branch: str) -> Optional[Path]:
+        """
+        Get cached repository path if available and valid.
+
+        Args:
+            repo_url: Repository URL
+            branch: Branch name
+
+        Returns:
+            Path to cached repository or None if not available/valid
+        """
+        repo_hash = self._get_repo_hash(repo_url, branch)
+        cache_path = self._get_cache_path(repo_hash)
+
+        with self._metadata_lock:
+            if repo_hash not in self._metadata:
+                return None
+
+            metadata = self._metadata[repo_hash]
+
+            # Check if cache entry is still valid
+            if not cache_path.exists():
+                del self._metadata[repo_hash]
+                self._save_metadata()
+                return None
+
+            # Basic validation - check if it's a git repository
+            if not (cache_path / ".git").exists():
+                del self._metadata[repo_hash]
+                self._save_metadata()
+                return None
+
+            # Check if branch exists
+            try:
+                result = subprocess.run(
+                    ["git", "show-ref", "--verify", "--quiet", f"refs/heads/{branch}"],
+                    cwd=cache_path,
+                    capture_output=True,
+                    timeout=10
+                )
+                if result.returncode != 0:
+                    del self._metadata[repo_hash]
+                    self._save_metadata()
+                    return None
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                return None
+
+            return cache_path
+
+    def cache_repo(self, repo_url: str, branch: str, source_path: Path) -> bool:
+        """
+        Cache a repository by copying it to the cache directory.
+
+        Args:
+            repo_url: Repository URL
+            branch: Branch name
+            source_path: Path to the source repository
+
+        Returns:
+            True if caching succeeded, False otherwise
+        """
+        try:
+            repo_hash = self._get_repo_hash(repo_url, branch)
+            cache_path = self._get_cache_path(repo_hash)
+
+            # Clean up old cache if needed
+            self._cleanup_old_cache()
+
+            # Copy repository to cache
+            if cache_path.exists():
+                import shutil
+                shutil.rmtree(cache_path)
+
+            import shutil
+            shutil.copytree(source_path, cache_path, ignore=shutil.ignore_patterns('*.tmp', '.git/index.lock'))
+
+            # Update metadata
+            with self._metadata_lock:
+                self._metadata[repo_hash] = {
+                    'repo_url': repo_url,
+                    'branch': branch,
+                    'cached_at': time.time(),
+                    'source_path': str(source_path)
+                }
+                self._save_metadata()
+
+            logging.info(f"Cached repository: {repo_hash}")
+            return True
+
+        except Exception as e:
+            logging.warning(f"Failed to cache repository: {e}")
+            return False
+
+    def clear_cache(self) -> None:
+        """Clear all cached repositories."""
+        try:
+            for item in self.cache_dir.iterdir():
+                if item.is_dir() and item != self.cache_metadata_file.parent:
+                    import shutil
+                    shutil.rmtree(item, ignore_errors=True)
+
+            with self._metadata_lock:
+                self._metadata.clear()
+                self._save_metadata()
+
+            logging.info("Git cache cleared")
+        except Exception as e:
+            logging.warning(f"Failed to clear cache: {e}")
+
+
+# Global cache instance
+_git_cache = None
+_cache_lock = threading.Lock()
+
+
+def get_git_cache(cache_dir: Optional[str] = None, max_cache_size_gb: float = 10.0) -> GitCache:
+    """
+    Get the global Git cache instance.
+
+    Args:
+        cache_dir: Optional cache directory override
+        max_cache_size_gb: Maximum cache size in GB
+
+    Returns:
+        GitCache instance
+    """
+    global _git_cache
+
+    if _git_cache is None:
+        with _cache_lock:
+            if _git_cache is None:
+                _git_cache = GitCache(cache_dir, max_cache_size_gb)
+
+    return _git_cache
+
+
 def diagnose_network_connectivity(url: str) -> List[str]:
     """
     Diagnose network connectivity issues for a given URL.
@@ -137,20 +403,16 @@ def diagnose_network_connectivity(url: str) -> List[str]:
 
         # Test basic connectivity with ping
         try:
-            if sys.platform == "win32":
-                result = subprocess.run(
-                    ["ping", "-n", "1", "-w", "5000", host],
-                    capture_output=True,
-                    text=True,
-                    timeout=10
-                )
-            else:
-                result = subprocess.run(
-                    ["ping", "-c", "1", "-W", "5", host],
-                    capture_output=True,
-                    text=True,
-                    timeout=10
-                )
+            from .cross_platform_utils import get_cross_platform_command
+            cmd_utils = get_cross_platform_command()
+            ping_cmd = cmd_utils.get_ping_command(host, 5)
+
+            result = subprocess.run(
+                ping_cmd,
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
 
             if result.returncode == 0:
                 diagnostics.append(f"✓ Network connectivity to {host} is working")
@@ -394,11 +656,12 @@ def _is_disk_space_error(error_msg: str) -> bool:
     return any(indicator.lower() in error_msg.lower() for indicator in disk_indicators)
 
 
-def clone_bitcoin_repo_enhanced(repo_url: str, branch: str, target_dir: str = "bitcoin") -> None:
+def clone_bitcoin_repo_enhanced(repo_url: str, branch: str, target_dir: str = "bitcoin", use_cache: bool = True) -> None:
     """
-    Enhanced Bitcoin repository cloning with comprehensive error handling.
+    Enhanced Bitcoin repository cloning with comprehensive error handling and caching.
 
     This function provides robust repository cloning with:
+    - Git repository caching for improved performance
     - Automatic network diagnostics before cloning
     - Thread-safe directory operations
     - Comprehensive error handling and retry logic
@@ -408,6 +671,7 @@ def clone_bitcoin_repo_enhanced(repo_url: str, branch: str, target_dir: str = "b
         repo_url: URL of the Git repository to clone
         branch: Branch name to clone from the repository
         target_dir: Local directory path for the cloned repository
+        use_cache: Whether to use Git caching for performance (default: True)
 
     Raises:
         ConnectionError: For network connectivity issues
@@ -425,21 +689,48 @@ def clone_bitcoin_repo_enhanced(repo_url: str, branch: str, target_dir: str = "b
             "bitcoin-source"
         )
     """
-    """
-    Enhanced Bitcoin repository cloning with comprehensive error handling and thread safety.
-
-    Args:
-        repo_url: URL of the repository to clone
-        branch: Branch to clone
-        target_dir: Target directory for the clone
-
-    Raises:
-        NetworkError: For network-related issues
-        RepositoryError: For repository access issues
-        DiskSpaceError: For disk space issues
-        TimeoutError: For timeout issues
-    """
     target_path = Path(target_dir)
+
+    # Check cache first if enabled
+    if use_cache:
+        cache = get_git_cache()
+        cached_repo = cache.get_cached_repo(repo_url, branch)
+        if cached_repo:
+            print_colored(f"[CACHE] Found cached repository for {repo_url}@{branch}", Fore.GREEN)
+            logger.info(f"Using cached repository from {cached_repo}")
+
+            # Copy from cache to target directory
+            try:
+                with file_system_lock(f"copy_cached_repo_{target_dir}"):
+                    if target_path.exists():
+                        import shutil
+                        shutil.rmtree(target_path)
+
+                    import shutil
+                    shutil.copytree(cached_repo, target_path)
+
+                    # Ensure we're on the correct branch
+                    run_git_command_with_retry(
+                        ["git", "checkout", branch],
+                        f"Switch to branch {branch}",
+                        cwd=target_path
+                    )
+
+                    print_colored(f"[CACHE] Repository copied from cache to '{target_dir}'", Fore.GREEN)
+                    logger.info(f"Successfully copied cached repository to {target_dir}")
+                    return
+
+            except Exception as e:
+                print_colored(f"[CACHE] Failed to use cached repository: {e}", Fore.YELLOW)
+                logger.warning(f"Cache copy failed, falling back to fresh clone: {e}")
+
+                # Clean up failed copy attempt
+                try:
+                    if target_path.exists():
+                        import shutil
+                        shutil.rmtree(target_path)
+                except Exception:
+                    pass
 
     # Thread-safe check for existing directory
     with file_system_lock(f"check_existing_repo_{target_dir}"):
@@ -477,6 +768,19 @@ def clone_bitcoin_repo_enhanced(repo_url: str, branch: str, target_dir: str = "b
 
         print_colored("[SUCCESS] Bitcoin repository cloned successfully", Fore.GREEN)
         logger.info(f"Repository cloned successfully to {target_dir}")
+
+        # Cache the repository for future use if caching is enabled
+        if use_cache:
+            try:
+                cache = get_git_cache()
+                if cache.cache_repo(repo_url, branch, target_path):
+                    print_colored("[CACHE] Repository cached for future use", Fore.CYAN)
+                    logger.info(f"Repository cached successfully")
+                else:
+                    logger.warning("Failed to cache repository")
+            except Exception as e:
+                logger.warning(f"Repository caching failed: {e}")
+                # Don't fail the clone operation if caching fails
 
     except ConnectionError as e:
         logger.error(f"Network connection error during clone: {e}")

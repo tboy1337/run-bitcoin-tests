@@ -51,6 +51,7 @@ from typing import List, Optional
 from .config import get_config, load_config
 from .logging_config import get_logger, setup_logging
 from .network_utils import clone_bitcoin_repo_enhanced
+from .performance_utils import get_performance_monitor, optimize_system_resources, ResourceOptimizer
 from .thread_utils import (atomic_directory_operation, docker_container_lock, file_system_lock,
                           initialize_thread_safety, register_cleanup_handler, resource_tracker)
 from .validation import validate_branch_name, validate_git_url, ValidationError
@@ -145,13 +146,30 @@ def clone_bitcoin_repo(repo_url: str, branch: str) -> None:
     """
     config = get_config()
 
+    # Start performance monitoring for cloning operation
+    monitor = get_performance_monitor()
+    monitor.start_monitoring()
+
     try:
         # Use configuration values for clone parameters
         clone_bitcoin_repo_enhanced(
             repo_url=repo_url,
             branch=branch,
-            target_dir="bitcoin"
+            target_dir="bitcoin",
+            use_cache=config.network.use_git_cache
         )
+
+        # Log performance metrics
+        metrics = monitor.stop_monitoring()
+        if metrics and not config.quiet:
+            avg_cpu = sum(m.get('cpu_percent', 0) for m in metrics) / len(metrics)
+            avg_memory = sum(m.get('memory_percent', 0) for m in metrics) / len(metrics)
+            print_colored(".2f")
+
+    except Exception:
+        # Stop monitoring even if cloning fails
+        monitor.stop_monitoring()
+        raise
     except NetworkError as e:
         # Network errors are already handled in the enhanced function
         # Just re-raise to maintain the same interface
@@ -173,6 +191,9 @@ def check_prerequisites() -> None:
 
     The function uses thread-safe file operations to prevent race conditions
     when multiple processes might be checking prerequisites simultaneously.
+
+    Performance monitoring is enabled during repository operations to track
+    resource usage and identify optimization opportunities.
 
     Raises:
         SystemExit: If required files are missing or repository validation fails
@@ -236,12 +257,34 @@ def build_docker_image() -> None:
 
     container_name = f"{config.docker.container_name}-build"
     with docker_container_lock(container_name):
-        cmd: List[str] = ["docker-compose", "-f", config.docker.compose_file, "build"]
+        from .cross_platform_utils import get_cross_platform_command
+        cmd_utils = get_cross_platform_command()
+        docker_compose_cmd = cmd_utils.get_docker_compose_command()
+
+        cmd: List[str] = docker_compose_cmd + ["-f", config.docker.compose_file, "build"]
+
+        # Performance optimizations for Docker builds
         if config.build.parallel_jobs and config.build.parallel_jobs > 1:
             # Add build arguments for parallel jobs
             cmd.extend(["--build-arg", f"CMAKE_BUILD_PARALLEL_LEVEL={config.build.parallel_jobs}"])
 
-        result = run_command(cmd, "Build Docker image")
+        # Use Docker build cache for faster rebuilds
+        cmd.append("--no-cache-filter")
+        cmd.append("bitcoin-deps")  # Only rebuild deps layer if needed
+
+        # Enable buildkit for better caching and performance
+        import os
+        old_docker_buildkit = os.environ.get('DOCKER_BUILDKIT')
+        os.environ['DOCKER_BUILDKIT'] = '1'
+
+        try:
+            result = run_command(cmd, "Build Docker image")
+        finally:
+            # Restore original DOCKER_BUILDKIT setting
+            if old_docker_buildkit is not None:
+                os.environ['DOCKER_BUILDKIT'] = old_docker_buildkit
+            else:
+                os.environ.pop('DOCKER_BUILDKIT', None)
 
         if result.returncode != 0:
             print_colored("[ERROR] Failed to build Docker image", Fore.RED)
@@ -274,7 +317,21 @@ def run_tests() -> int:
 
     container_name = f"{config.docker.container_name}-runner"
     with docker_container_lock(container_name):
-        cmd: List[str] = ["docker-compose", "run", "--rm", config.docker.container_name]
+        from .cross_platform_utils import get_cross_platform_command
+        cmd_utils = get_cross_platform_command()
+        docker_compose_cmd = cmd_utils.get_docker_compose_command()
+
+        cmd: List[str] = docker_compose_cmd + ["run", "--rm"]
+
+        # Performance optimizations
+        if config.test.parallel and config.test.parallel_jobs:
+            # Use more CPU resources for parallel test execution
+            cmd.extend(["--cpus", str(min(config.test.parallel_jobs, 4))])  # Limit to 4 CPUs max
+
+        # Add memory limits for better resource management
+        cmd.extend(["--memory", "4g", "--memory-swap", "8g"])
+
+        cmd.append(config.docker.container_name)
         result = run_command(cmd, "Run tests")
 
     if not config.quiet:
@@ -436,6 +493,19 @@ Configuration:
         help="Show current configuration and exit"
     )
 
+    # Performance options
+    parser.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="Disable Git repository caching for cloning operations"
+    )
+
+    parser.add_argument(
+        "--performance-monitor",
+        action="store_true",
+        help="Enable detailed performance monitoring during operations"
+    )
+
     args = parser.parse_args()
 
     # Handle special cases
@@ -498,6 +568,9 @@ def main() -> None:
 
     # Initialize thread safety
     initialize_thread_safety()
+
+    # Optimize system resources for better performance
+    optimize_system_resources()
 
     # Set up logging using configuration
     logger = setup_logging(

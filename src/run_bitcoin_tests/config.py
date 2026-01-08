@@ -101,6 +101,9 @@ class NetworkConfig:
     user_agent: str = "bitcoin-tests-runner/1.0"
     proxy: Optional[str] = None
     no_proxy: List[str] = field(default_factory=list)
+    use_git_cache: bool = True  # Enable Git repository caching
+    cache_dir: Optional[str] = None  # Custom cache directory (None = default ~/.bitcoin_test_cache)
+    max_cache_size_gb: float = 10.0  # Maximum cache size in GB
 
 
 @dataclass
@@ -256,6 +259,14 @@ class ConfigManager:
             self.config.logging.file = args.log_file
         if hasattr(args, 'log_level') and args.log_level:
             self.config.logging.level = args.log_level
+
+        # Performance settings
+        if hasattr(args, 'no_cache') and args.no_cache:
+            self.config.network.use_git_cache = False
+        if hasattr(args, 'performance_monitor') and args.performance_monitor:
+            # This could be used to enable more detailed monitoring
+            # For now, we just set a flag that can be checked
+            pass
 
     def _get_env_var(self, name: str, default: Any, var_type: type = str) -> Any:
         """Get environment variable with type conversion."""
