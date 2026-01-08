@@ -84,6 +84,10 @@ class TestConfigManager:
         with patch.dict(os.environ, {"TEST_BOOL_FALSE": "false"}):
             assert manager._get_env_var("TEST_BOOL_FALSE", True, bool) is False
 
+        # Test invalid boolean values (should return default)
+        with patch.dict(os.environ, {"TEST_BOOL_INVALID": "maybe"}):
+            assert manager._get_env_var("TEST_BOOL_INVALID", True, bool) is True
+
         # Test integer values
         with patch.dict(os.environ, {"TEST_INT": "42"}):
             assert manager._get_env_var("TEST_INT", 0, int) == 42
@@ -132,6 +136,8 @@ BTC_LOG_LEVEL=WARNING
             # If python-dotenv is not available, the file won't be loaded
             if hasattr(manager, '_loaded_env_files') and env_file in [str(p) for p in manager._loaded_env_files]:
                 # python-dotenv was available and loaded the file
+                # Now load the environment variables into config
+                manager.load_from_env_vars()
                 assert manager.config.repository.url == "https://github.com/env/bitcoin"
                 assert manager.config.build.type == "Release"
                 assert manager.config.logging.level == "WARNING"
@@ -154,6 +160,16 @@ BTC_LOG_LEVEL=WARNING
         errors = manager.validate_config()
         assert len(errors) > 0
         assert "Repository URL cannot be empty" in errors[0]
+
+        # Reset for next test
+        manager.config.repository.url = "https://github.com/bitcoin/bitcoin"
+
+        # Test URL too long
+        long_url = "https://github.com/" + "a" * 3000
+        manager.config.repository.url = long_url
+        errors = manager.validate_config()
+        assert len(errors) > 0
+        assert "URL too long" in errors[0]
 
         # Reset for next test
         manager.config.repository.url = "https://github.com/bitcoin/bitcoin"

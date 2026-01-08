@@ -1,5 +1,6 @@
 """Tests for network utilities module."""
 
+import json
 import subprocess
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -10,6 +11,13 @@ from run_bitcoin_tests.network_utils import (
     diagnose_network_connectivity,
     run_git_command_with_retry,
     clone_bitcoin_repo_enhanced,
+    get_git_cache,
+    GitCache,
+    _is_network_error,
+    _is_ssl_error,
+    _is_authentication_error,
+    _is_repository_error,
+    _is_disk_space_error,
     ConnectionError,
     SSLError,
     AuthenticationError,
@@ -248,3 +256,297 @@ class TestCloneBitcoinRepoEnhanced:
         with patch("pathlib.Path.exists", return_value=False):
             with pytest.raises(SSLError):
                 clone_bitcoin_repo_enhanced("https://github.com/bitcoin/bitcoin", "master")
+
+
+class TestGitCache:
+    """Test GitCache functionality."""
+
+    @patch("run_bitcoin_tests.network_utils.GitCache._instance", None)
+    def test_get_instance_creates_singleton(self):
+        """Test that get_instance creates a singleton."""
+        # Reset the singleton
+        GitCache._instance = None
+
+        instance1 = GitCache.get_instance()
+        instance2 = GitCache.get_instance()
+
+        assert instance1 is instance2
+        assert isinstance(instance1, GitCache)
+
+    @patch("run_bitcoin_tests.network_utils.GitCache._instance", None)
+    def test_get_instance_with_custom_params(self):
+        """Test get_instance with custom parameters."""
+        GitCache._instance = None
+
+        instance = GitCache.get_instance(cache_dir="/tmp/custom", max_cache_size_gb=5.0)
+
+        # Use Path comparison to handle platform differences
+        from pathlib import Path
+        assert instance.cache_dir == Path("/tmp/custom")
+        assert instance.max_cache_size_gb == 5.0
+
+    def test_git_cache_initialization(self):
+        """Test GitCache initialization."""
+        with patch("pathlib.Path.mkdir"):
+            cache = GitCache(cache_dir="/tmp/test", max_cache_size_gb=2.0)
+
+            # Use Path comparison to handle platform differences
+            from pathlib import Path
+            assert cache.cache_dir == Path("/tmp/test")
+            assert cache.max_cache_size_gb == 2.0
+            assert cache.cache_metadata_file.name == "cache_metadata.json"
+
+    @patch("pathlib.Path.exists")
+    @patch("builtins.open")
+    @patch("json.load")
+    @patch("pathlib.Path.mkdir")  # Prevent directory creation during test
+    def test_load_metadata_success(self, mock_mkdir, mock_json_load, mock_open, mock_exists):
+        """Test loading metadata successfully."""
+        mock_exists.return_value = True
+        mock_json_load.return_value = {"test": "data"}
+
+        # Create cache without calling constructor's _load_metadata
+        cache = object.__new__(GitCache)
+        cache.cache_metadata_file = Mock()
+        cache.cache_metadata_file.exists.return_value = True
+
+        metadata = cache._load_metadata()
+
+        assert metadata == {"test": "data"}
+        mock_open.assert_called_once()
+
+    @patch("pathlib.Path.exists")
+    def test_load_metadata_file_not_exists(self, mock_exists):
+        """Test loading metadata when file doesn't exist."""
+        mock_exists.return_value = False
+
+        cache = GitCache()
+        metadata = cache._load_metadata()
+
+        assert metadata == {}
+
+    @patch("pathlib.Path.exists")
+    @patch("builtins.open")
+    @patch("json.load", side_effect=json.JSONDecodeError("JSON error", "", 0))
+    @patch("logging.warning")
+    @patch("pathlib.Path.mkdir")  # Prevent directory creation during test
+    def test_load_metadata_json_error(self, mock_mkdir, mock_logging_warning, mock_json_load, mock_open, mock_exists):
+        """Test loading metadata with JSON error."""
+        mock_exists.return_value = True
+
+        # Create cache without calling constructor's _load_metadata
+        cache = object.__new__(GitCache)
+        cache.cache_metadata_file = Mock()
+        cache.cache_metadata_file.exists.return_value = True
+
+        metadata = cache._load_metadata()
+
+        assert metadata == {}
+        mock_logging_warning.assert_called_once()
+
+    @patch("logging.warning")
+    @patch("pathlib.Path.mkdir")  # Prevent directory creation during test
+    def test_save_metadata(self, mock_mkdir, mock_logging_warning):
+        """Test saving metadata."""
+        with patch("builtins.open") as mock_open, \
+             patch("json.dump") as mock_json_dump:
+
+            # Create cache without calling constructor's _load_metadata
+            cache = object.__new__(GitCache)
+            cache.cache_metadata_file = Mock()
+            cache._metadata = {"test": "data"}
+            cache._metadata_lock = Mock()
+            cache._metadata_lock.__enter__ = Mock(return_value=None)
+            cache._metadata_lock.__exit__ = Mock(return_value=None)
+
+            cache._save_metadata()
+
+            mock_open.assert_called_once()
+            mock_json_dump.assert_called_once_with({"test": "data"}, mock_open.return_value.__enter__(), indent=2)
+
+    @patch("logging.warning")
+    @patch("builtins.open", side_effect=IOError("Write error"))
+    @patch("pathlib.Path.mkdir")  # Prevent directory creation during test
+    def test_save_metadata_error(self, mock_mkdir, mock_open, mock_logging_warning):
+        """Test saving metadata with error."""
+        # Create cache without calling constructor's _load_metadata
+        cache = object.__new__(GitCache)
+        cache.cache_metadata_file = Mock()
+        cache._metadata = {"test": "data"}
+        cache._metadata_lock = Mock()
+        cache._metadata_lock.__enter__ = Mock(return_value=None)
+        cache._metadata_lock.__exit__ = Mock(return_value=None)
+
+        # Should not raise exception
+        cache._save_metadata()
+
+        mock_logging_warning.assert_called_once()
+
+
+class TestGetGitCache:
+    """Test get_git_cache function."""
+
+    @patch("run_bitcoin_tests.network_utils.GitCache")
+    def test_get_git_cache_default_params(self, mock_git_cache_class):
+        """Test get_git_cache with default parameters."""
+        mock_instance = Mock()
+        mock_git_cache_class.return_value = mock_instance
+
+        # Reset global cache
+        import run_bitcoin_tests.network_utils as nu
+        nu._git_cache = None
+
+        result = get_git_cache()
+
+        mock_git_cache_class.assert_called_once_with(None, 10.0)
+        assert result == mock_instance
+
+    @patch("run_bitcoin_tests.network_utils.GitCache")
+    def test_get_git_cache_custom_params(self, mock_git_cache_class):
+        """Test get_git_cache with custom parameters."""
+        mock_instance = Mock()
+        mock_git_cache_class.return_value = mock_instance
+
+        # Reset global cache
+        import run_bitcoin_tests.network_utils as nu
+        nu._git_cache = None
+
+        result = get_git_cache(cache_dir="/tmp/custom", max_cache_size_gb=5.0)
+
+        mock_git_cache_class.assert_called_once_with("/tmp/custom", 5.0)
+        assert result == mock_instance
+
+
+class TestErrorDetectionFunctions:
+    """Test error detection helper functions."""
+
+    def test_is_network_error_true(self):
+        """Test _is_network_error returns True for network errors."""
+        network_errors = [
+            "Network is unreachable",
+            "Connection refused",
+            "Connection timed out",
+            "Connection reset by peer",
+            "No route to host",
+            "Temporary failure in name resolution",
+            "Could not resolve host",
+            "Failed to connect to github.com",
+            "Network error occurred",
+            "Transfer closed with outstanding read data remaining",
+            "The remote end hung up unexpectedly"
+        ]
+
+        for error in network_errors:
+            assert _is_network_error(error), f"Should detect '{error}' as network error"
+
+    def test_is_network_error_false(self):
+        """Test _is_network_error returns False for non-network errors."""
+        non_network_errors = [
+            "Repository not found",
+            "Authentication failed",
+            "Disk space insufficient",
+            "Permission denied"
+        ]
+
+        for error in non_network_errors:
+            assert not _is_network_error(error), f"Should not detect '{error}' as network error"
+
+    def test_is_ssl_error_true(self):
+        """Test _is_ssl_error returns True for SSL errors."""
+        ssl_errors = [
+            "SSL certificate verification failed",
+            "SSL verification error",
+            "TLS handshake failed",
+            "Certificate verify failed",
+            "Self signed certificate in certificate chain"
+        ]
+
+        for error in ssl_errors:
+            assert _is_ssl_error(error), f"Should detect '{error}' as SSL error"
+
+    def test_is_ssl_error_false(self):
+        """Test _is_ssl_error returns False for non-SSL errors."""
+        non_ssl_errors = [
+            "Repository not found",
+            "Connection refused",
+            "Disk space insufficient"
+        ]
+
+        for error in non_ssl_errors:
+            assert not _is_ssl_error(error), f"Should not detect '{error}' as SSL error"
+
+    def test_is_authentication_error_true(self):
+        """Test _is_authentication_error returns True for auth errors."""
+        auth_errors = [
+            "Authentication failed",
+            "Permission denied (publickey)",
+            "Access denied",
+            "not authorized",
+            "Invalid credentials",
+            "remote: invalid username or password"
+        ]
+
+        for error in auth_errors:
+            assert _is_authentication_error(error), f"Should detect '{error}' as auth error"
+
+    def test_is_authentication_error_false(self):
+        """Test _is_authentication_error returns False for non-auth errors."""
+        non_auth_errors = [
+            "Network is unreachable",
+            "SSL certificate verification failed",
+            "Disk space insufficient",
+            "fatal: remote error: upload denied"
+        ]
+
+        for error in non_auth_errors:
+            assert not _is_authentication_error(error), f"Should not detect '{error}' as auth error"
+
+    def test_is_repository_error_true(self):
+        """Test _is_repository_error returns True for repository errors."""
+        repo_errors = [
+            "Remote repository not found",
+            "remote: repository not found",
+            "remote: access denied",
+            "remote: permission to user/repo denied",
+            "remote: the repository you are trying to access does not exist",
+            "fatal: remote error: access denied or repository not exported",
+            "fatal: could not read from remote repository"
+        ]
+
+        for error in repo_errors:
+            assert _is_repository_error(error), f"Should detect '{error}' as repository error"
+
+    def test_is_repository_error_false(self):
+        """Test _is_repository_error returns False for non-repository errors."""
+        non_repo_errors = [
+            "Network is unreachable",
+            "Authentication failed for user",
+            "Disk space insufficient"
+        ]
+
+        for error in non_repo_errors:
+            assert not _is_repository_error(error), f"Should not detect '{error}' as repository error"
+
+    def test_is_disk_space_error_true(self):
+        """Test _is_disk_space_error returns True for disk space errors."""
+        disk_errors = [
+            "No space left on device",
+            "insufficient disk space",
+            "Out of disk space",
+            "disk quota exceeded",
+            "Disk full"
+        ]
+
+        for error in disk_errors:
+            assert _is_disk_space_error(error), f"Should detect '{error}' as disk space error"
+
+    def test_is_disk_space_error_false(self):
+        """Test _is_disk_space_error returns False for non-disk errors."""
+        non_disk_errors = [
+            "Network is unreachable",
+            "Authentication failed",
+            "Repository not found"
+        ]
+
+        for error in non_disk_errors:
+            assert not _is_disk_space_error(error), f"Should not detect '{error}' as disk space error"

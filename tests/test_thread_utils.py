@@ -131,6 +131,33 @@ class TestResourceTracker:
         resource1.cleanup.assert_called_once()
         resource2.cleanup.assert_called_once()
 
+    @patch("run_bitcoin_tests.thread_utils.logger")
+    def test_cleanup_resources_with_exceptions(self, mock_logger):
+        """Test cleanup handles exceptions in resource cleanup methods."""
+        tracker = ResourceTracker()
+
+        # Create mock resources where cleanup raises exceptions
+        resource1 = Mock()
+        resource1.cleanup.side_effect = Exception("Cleanup failed")
+        # Create a resource that has close but not cleanup
+        resource2 = Mock(spec=[])  # Empty spec means no attributes by default
+        resource2.close = Mock()
+
+        tracker.register_resource("failing_resource", resource1)
+        tracker.register_resource("working_resource", resource2)
+
+        # Should not raise exception even though resource1.cleanup fails
+        tracker.cleanup_all_resources()
+
+        # Should have logged the error for the failing resource
+        mock_logger.error.assert_called_once()
+
+        # Should have called close on the working resource (since it doesn't have cleanup)
+        resource2.close.assert_called_once()
+
+        # All resources should be cleared
+        assert tracker.list_resources() == []
+
 
 class TestAtomicDirectoryOperation:
     """Test atomic directory operations."""
@@ -174,6 +201,24 @@ class TestAtomicDirectoryOperation:
 
             assert nested_dir.exists()
 
+    @patch("run_bitcoin_tests.thread_utils.logger")
+    def test_atomic_directory_operation_exception_handling(self, mock_logger):
+        """Test atomic directory operation handles exceptions properly."""
+        import os
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Try to create a directory that will fail (permission error)
+            # On Windows, we can try to create a directory with invalid characters
+            invalid_dir = Path(temp_dir) / "invalid<>dir"
+
+            with pytest.raises(Exception):
+                with atomic_directory_operation(invalid_dir, "test_exception"):
+                    pass  # Should not reach here
+
+            # Should have logged the error
+            mock_logger.error.assert_called()
+
 
 class TestThreadSafeTempDir:
     """Test thread-safe temporary directory creation."""
@@ -198,6 +243,28 @@ class TestThreadSafeTempDir:
         with thread_safe_temp_dir(prefix="pre_", suffix="_suf") as temp_dir:
             assert temp_dir.name.startswith("pre_")
             assert temp_dir.name.endswith("_suf")
+
+    @patch("run_bitcoin_tests.thread_utils.logger")
+    @patch("tempfile.mkdtemp", side_effect=OSError("Permission denied"))
+    def test_thread_safe_temp_dir_exception_handling(self, mock_mkdtemp, mock_logger):
+        """Test thread_safe_temp_dir handles exceptions properly."""
+        with pytest.raises(OSError):
+            with thread_safe_temp_dir():
+                pass  # Should not reach here
+
+        # Should have logged the error
+        mock_logger.error.assert_called()
+
+    @patch("run_bitcoin_tests.thread_utils.logger")
+    @patch("tempfile.mkdtemp", side_effect=OSError("Failed to create temp directory"))
+    def test_thread_safe_temp_dir_creation_failure(self, mock_mkdtemp, mock_logger):
+        """Test temp dir handles creation failure properly."""
+        with pytest.raises(OSError):
+            with thread_safe_temp_dir():
+                pass  # Should not reach here due to mkdtemp failure
+
+        # Should have logged the error
+        mock_logger.error.assert_called_once()
 
 
 class TestCleanupHandlers:
@@ -283,6 +350,16 @@ class TestDockerContainerLock:
 
         assert len(lock_acquired) == 1
 
+    @patch("run_bitcoin_tests.thread_utils._docker_lock")
+    def test_docker_lock_timeout(self, mock_lock):
+        """Test Docker lock timeout raises TimeoutError."""
+        # Mock the lock to not acquire
+        mock_lock.acquire.return_value = False
+
+        with pytest.raises(TimeoutError, match="Failed to acquire Docker lock"):
+            with docker_container_lock("test_container"):
+                pass
+
 
 class TestEmergencyCleanup:
     """Test emergency cleanup functionality."""
@@ -305,5 +382,25 @@ class TestEmergencyCleanup:
         mock_remove_temp.assert_called_once()
 
         # Sets should be cleared
+        assert len(_active_containers) == 0
+        assert len(_temp_directories) == 0
+
+    @patch("run_bitcoin_tests.thread_utils.logger")
+    def test_emergency_cleanup_exception_handling(self, mock_logger):
+        """Test emergency cleanup handles exceptions gracefully."""
+        from run_bitcoin_tests.thread_utils import _active_containers, _temp_directories
+
+        # Add some containers and temp dirs
+        _active_containers.add("test_container")
+        _temp_directories.add(Path("/tmp/test"))
+
+        # Mock subprocess.run to raise an exception
+        with patch("subprocess.run", side_effect=Exception("Docker error")):
+            emergency_cleanup()
+
+        # Should have logged the error
+        mock_logger.error.assert_called()
+
+        # Sets should still be cleared even with exceptions
         assert len(_active_containers) == 0
         assert len(_temp_directories) == 0

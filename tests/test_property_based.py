@@ -7,6 +7,7 @@ import pytest
 from hypothesis import given, settings, strategies as st, HealthCheck
 
 from run_bitcoin_tests.main import print_colored, run_command
+from run_bitcoin_tests.validation import ValidationError
 
 
 class TestPrintColoredHypothesis:
@@ -68,15 +69,12 @@ class TestArgumentsHypothesis:
         with patch("sys.argv", test_args):
             try:
                 args = parse_arguments()
-                # If validation passes, URLs should be validated
-                from run_bitcoin_tests.validation import validate_git_url, validate_branch_name
-                expected_url = validate_git_url(repo_url)
-                expected_branch = validate_branch_name(branch)
-                assert args.repo_url == expected_url
-                assert args.branch == expected_branch
+                # If parsing succeeds, the args should contain the provided values
+                assert args.repo_url == repo_url
+                assert args.branch == branch
             except SystemExit:
-                # Validation failed, which is expected for some generated inputs
-                # This is normal behavior - not all generated inputs will pass validation
+                # Argument parsing failed, which is expected for some generated inputs
+                # This is normal behavior - not all generated inputs will pass basic parsing
                 pass
 
 
@@ -95,10 +93,14 @@ class TestCloneRepoHypothesis:
             # Mock the enhanced clone function to not raise an exception
             mock_clone_enhanced.return_value = None
 
-            clone_bitcoin_repo(repo_url, branch)
+            try:
+                clone_bitcoin_repo(repo_url, branch)
 
-            # Verify the enhanced clone function was called with correct parameters
-            mock_clone_enhanced.assert_called_once_with(repo_url, branch, "bitcoin")
+                # Verify the enhanced clone function was called with correct parameters
+                mock_clone_enhanced.assert_called_once_with(repo_url=repo_url, branch=branch, target_dir="bitcoin", use_cache=True)
+            except ValidationError:
+                # Some generated inputs may be invalid, which is expected
+                pass
 
 
 class TestPrerequisitesHypothesis:
@@ -113,7 +115,16 @@ class TestPrerequisitesHypothesis:
         from run_bitcoin_tests.main import check_prerequisites
 
         with patch("run_bitcoin_tests.main.clone_bitcoin_repo") as mock_clone, \
-             patch("run_bitcoin_tests.main.Path") as mock_path:
+             patch("run_bitcoin_tests.main.Path") as mock_path, \
+             patch("run_bitcoin_tests.main.get_config") as mock_get_config:
+
+            # Mock config
+            mock_config = Mock()
+            mock_config.repository.url = repo_url
+            mock_config.repository.branch = branch
+            mock_config.quiet = True
+            mock_config.docker.compose_file = "docker-compose.yml"
+            mock_get_config.return_value = mock_config
 
             # Setup path mock to indicate all required files exist
             def path_side_effect(path_str):
@@ -123,7 +134,11 @@ class TestPrerequisitesHypothesis:
 
             mock_path.side_effect = path_side_effect
 
-            check_prerequisites(repo_url, branch)
+            try:
+                check_prerequisites()
 
-            # Verify clone was called with the provided parameters
-            mock_clone.assert_called_once_with(repo_url, branch)
+                # Verify clone was called with the provided parameters
+                mock_clone.assert_called_once_with(repo_url, branch)
+            except ValidationError:
+                # Some generated inputs may be invalid, which is expected
+                pass

@@ -6,6 +6,7 @@ ensuring consistent behavior across Windows, macOS, and Linux.
 """
 
 import os
+import subprocess
 import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -148,7 +149,7 @@ class TestCrossPlatformCommand:
 
             args = ['git', 'clone', 'https://example.com/repo', '--branch', 'main']
             normalized = cmd.normalize_command_args(args)
-            # On Windows, paths get converted to backslashes
+            # On Windows, paths get converted to backslashes (but URLs should be preserved)
             expected = ['git', 'clone', 'https://example.com/repo', '--branch', 'main']
             assert normalized == expected
 
@@ -317,3 +318,159 @@ class TestIntegration:
 
         # Python version should be compatible (assuming we're running on a supported version)
         assert compatibility.get('python_version_compatible', False)
+
+    @patch("subprocess.run")
+    def test_check_command_timeout(self, mock_run):
+        """Test _check_command handles timeout exceptions."""
+        mock_run.side_effect = subprocess.TimeoutExpired("timeout", 5)
+
+        info = PlatformInfo()
+        result = info._check_command("some_command")
+
+        assert result is False
+
+    @patch("subprocess.run")
+    def test_check_command_file_not_found(self, mock_run):
+        """Test _check_command handles FileNotFoundError."""
+        mock_run.side_effect = FileNotFoundError("command not found")
+
+        info = PlatformInfo()
+        result = info._check_command("some_command")
+
+        assert result is False
+
+    @patch("subprocess.run")
+    def test_check_command_os_error(self, mock_run):
+        """Test _check_command handles OSError."""
+        mock_run.side_effect = OSError("permission denied")
+
+        info = PlatformInfo()
+        result = info._check_command("some_command")
+
+        assert result is False
+
+    @patch("subprocess.run")
+    def test_check_command_success(self, mock_run):
+        """Test _check_command returns True for successful execution."""
+        mock_run.return_value = Mock(returncode=0)
+
+        info = PlatformInfo()
+        result = info._check_command("docker")
+
+        assert result is True
+
+    @patch("ctypes.windll.kernel32.GetConsoleOutputCP")
+    def test_supports_unicode_windows_success(self, mock_get_console_cp):
+        """Test supports_unicode on Windows with successful ctypes call."""
+        mock_get_console_cp.return_value = 65001  # UTF-8 codepage
+
+        info = PlatformInfo()
+        info.is_windows = True
+
+        result = info.supports_unicode()
+        assert result is True
+
+    @patch("ctypes.windll.kernel32.GetConsoleOutputCP")
+    def test_supports_unicode_windows_returns_false(self, mock_get_console_cp):
+        """Test supports_unicode on Windows with ctypes returning 0."""
+        mock_get_console_cp.return_value = 0
+
+        info = PlatformInfo()
+        info.is_windows = True
+
+        result = info.supports_unicode()
+        assert result is False
+
+    @patch("ctypes.windll.kernel32.GetConsoleOutputCP", side_effect=AttributeError)
+    def test_supports_unicode_windows_exception(self, mock_get_console_cp):
+        """Test supports_unicode on Windows handles ctypes exceptions."""
+        info = PlatformInfo()
+        info.is_windows = True
+
+        result = info.supports_unicode()
+        assert result is False
+
+    @patch("ctypes.windll.kernel32.GetConsoleOutputCP", side_effect=OSError)
+    def test_supports_unicode_windows_os_error(self, mock_get_console_cp):
+        """Test supports_unicode on Windows handles OSError."""
+        info = PlatformInfo()
+        info.is_windows = True
+
+        result = info.supports_unicode()
+        assert result is False  # Should return False due to exception
+
+    def test_supports_unicode_non_windows(self):
+        """Test supports_unicode on non-Windows platforms."""
+        info = PlatformInfo()
+        info.is_windows = False
+
+        result = info.supports_unicode()
+        assert result is True
+
+    def test_get_temp_directory_windows(self):
+        """Test get_temp_directory on Windows."""
+        info = PlatformInfo()
+        info.is_windows = True
+
+        result = info.get_temp_directory()
+        assert isinstance(result, Path)
+
+    def test_get_temp_directory_unix(self):
+        """Test get_temp_directory on Unix-like systems."""
+        info = PlatformInfo()
+        info.is_windows = False
+
+        result = info.get_temp_directory()
+        assert result == Path('/tmp')
+
+    def test_get_cache_directory_windows_with_localappdata(self):
+        """Test get_cache_directory on Windows with LOCALAPPDATA set."""
+        info = PlatformInfo()
+        info.is_windows = True
+        info.is_macos = False
+
+        with patch.dict(os.environ, {'LOCALAPPDATA': 'C:\\Users\\Test\\AppData\\Local'}):
+            result = info.get_cache_directory()
+            assert result == Path('C:\\Users\\Test\\AppData\\Local\\bitcoin-tests')
+
+    def test_get_cache_directory_windows_without_localappdata(self):
+        """Test get_cache_directory on Windows without LOCALAPPDATA."""
+        info = PlatformInfo()
+        info.is_windows = True
+        info.is_macos = False
+
+        with patch.dict(os.environ, {}, clear=True), \
+             patch('pathlib.Path.home', return_value=Path('C:\\Users\\Test')):
+            result = info.get_cache_directory()
+            assert result == Path('C:\\Users\\Test\\AppData\\Local\\bitcoin-tests')
+
+    def test_get_cache_directory_macos(self):
+        """Test get_cache_directory on macOS."""
+        info = PlatformInfo()
+        info.is_windows = False
+        info.is_macos = True
+
+        with patch('pathlib.Path.home', return_value=Path('/Users/test')):
+            result = info.get_cache_directory()
+            assert result == Path('/Users/test/Library/Caches/bitcoin-tests')
+
+    def test_get_cache_directory_linux_with_xdg_cache_home(self):
+        """Test get_cache_directory on Linux with XDG_CACHE_HOME set."""
+        info = PlatformInfo()
+        info.is_windows = False
+        info.is_macos = False
+
+        with patch.dict(os.environ, {'XDG_CACHE_HOME': '/home/test/.cache'}):
+            result = info.get_cache_directory()
+            assert result == Path('/home/test/.cache/bitcoin-tests')
+
+    def test_get_cache_directory_linux_without_xdg_cache_home(self):
+        """Test get_cache_directory on Linux without XDG_CACHE_HOME."""
+        info = PlatformInfo()
+        info.is_windows = False
+        info.is_macos = False
+
+        with patch.dict(os.environ, {}, clear=True), \
+             patch('pathlib.Path.home', return_value=Path('/home/test')):
+            result = info.get_cache_directory()
+            assert result == Path('/home/test/.cache/bitcoin-tests')

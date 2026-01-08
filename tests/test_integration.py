@@ -26,6 +26,13 @@ class TestIntegration:
         mock_args = Mock()
         mock_args.repo_url = "https://github.com/bitcoin/bitcoin"
         mock_args.branch = "master"
+        mock_args.verbose = False
+        mock_args.quiet = False
+        mock_args.log_level = "INFO"
+        mock_args.log_file = None
+        mock_args.no_cache = False
+        mock_args.performance_monitor = False
+        mock_args.dry_run = False
         mock_parse_args.return_value = mock_args
 
         mock_run_tests.return_value = 0
@@ -38,7 +45,7 @@ class TestIntegration:
         assert "Bitcoin Core C++ Tests Runner" in output
 
         # Verify all steps were called
-        mock_check_prereqs.assert_called_once_with(mock_args.repo_url, mock_args.branch)
+        mock_check_prereqs.assert_called_once()
         mock_build.assert_called_once()
         mock_run_tests.assert_called_once()
         mock_cleanup.assert_called_once()
@@ -57,6 +64,13 @@ class TestIntegration:
         mock_args = Mock()
         mock_args.repo_url = "https://github.com/myfork/bitcoin"
         mock_args.branch = "feature-branch"
+        mock_args.verbose = False
+        mock_args.quiet = False
+        mock_args.log_level = "INFO"
+        mock_args.log_file = None
+        mock_args.no_cache = False
+        mock_args.performance_monitor = False
+        mock_args.dry_run = False
         mock_parse_args.return_value = mock_args
 
         mock_run_tests.return_value = 0
@@ -68,7 +82,7 @@ class TestIntegration:
         output = capsys.readouterr().out
         assert "Repository: https://github.com/myfork/bitcoin (branch: feature-branch)" in output
 
-        mock_check_prereqs.assert_called_once_with(mock_args.repo_url, mock_args.branch)
+        mock_check_prereqs.assert_called_once()
         mock_exit.assert_called_once_with(0)
 
 
@@ -105,14 +119,21 @@ class TestCommandLineInterface:
 class TestErrorScenarios:
     """Test various error scenarios."""
 
-    def test_prerequisites_failure_calls_cleanup_indirectly(self):
+    @patch("run_bitcoin_tests.main.get_config")
+    @patch("run_bitcoin_tests.main.Path")
+    def test_prerequisites_failure_calls_cleanup_indirectly(self, mock_path, mock_get_config):
         """Test that prerequisites failure would trigger cleanup (integration test)."""
         # This is a conceptual test - in real usage, sys.exit() calls from individual
         # functions would exit the program. Here we test that the functions work as expected.
         from run_bitcoin_tests.main import check_prerequisites
 
-        with patch("run_bitcoin_tests.main.Path") as mock_path, \
-             pytest.raises(SystemExit):
+        # Mock config
+        mock_config = Mock()
+        mock_config.quiet = True
+        mock_config.docker.compose_file = "docker-compose.yml"
+        mock_get_config.return_value = mock_config
+
+        with pytest.raises(SystemExit):
             # Setup mocks to simulate missing files
             def path_side_effect(path_str):
                 mock_file = Mock()
@@ -121,7 +142,7 @@ class TestErrorScenarios:
 
             mock_path.side_effect = path_side_effect
 
-            check_prerequisites("https://github.com/bitcoin/bitcoin", "master")
+            check_prerequisites()
 
     def test_build_failure_calls_cleanup_indirectly(self):
         """Test that build failure would trigger cleanup (integration test)."""

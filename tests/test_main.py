@@ -443,6 +443,7 @@ class TestMain:
         mock_config.logging.level = "INFO"
         mock_config.verbose = False
         mock_config.quiet = False
+        mock_config.dry_run = False
         mock_load_config.return_value = mock_config
 
         mock_check_prereqs.side_effect = KeyboardInterrupt()
@@ -469,6 +470,7 @@ class TestMain:
         mock_config.logging.level = "INFO"
         mock_config.verbose = False
         mock_config.quiet = False
+        mock_config.dry_run = False
         mock_load_config.return_value = mock_config
 
         mock_check_prereqs.side_effect = Exception("Test error")

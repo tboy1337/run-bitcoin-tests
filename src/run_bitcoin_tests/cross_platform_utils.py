@@ -196,10 +196,13 @@ class CrossPlatformCommand:
         if self.platform.is_windows:
             normalized = []
             for arg in args:
-                # Convert forward slashes to backslashes in paths
+                # Convert forward slashes to backslashes in paths (but not URLs)
                 if '/' in arg and '\\' not in arg and not arg.startswith('-'):
+                    # Don't convert URLs
+                    if arg.startswith(('http://', 'https://')):
+                        normalized.append(arg)
                     # Simple heuristic: if it looks like a path, convert
-                    if '.' in arg or '/' in arg:
+                    elif '.' in arg or '/' in arg:
                         normalized.append(arg.replace('/', '\\'))
                     else:
                         normalized.append(arg)

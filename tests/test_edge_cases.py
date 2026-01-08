@@ -182,7 +182,7 @@ class TestEnvironmentVariables:
 
         # Should still work with custom compose file
         mock_run_command.assert_called_once_with(
-            ["docker-compose", "build"], "Build Docker image"
+            ["docker", "compose", "-f", "docker-compose.yml", "build", "--no-cache-filter", "bitcoin-deps"], "Build Docker image"
         )
 
 
@@ -231,7 +231,7 @@ class TestFileSystemEdgeCases:
         mock_path.side_effect = path_side_effect
 
         # Should pass since we're only checking existence, not readability
-        check_prerequisites("https://github.com/bitcoin/bitcoin", "master")
+        check_prerequisites()
 
 
 class TestConcurrencyEdgeCases:
