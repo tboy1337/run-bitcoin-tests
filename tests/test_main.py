@@ -90,72 +90,48 @@ class TestRunCommand:
 class TestCloneBitcoinRepo:
     """Test clone_bitcoin_repo function."""
 
-    @patch("run_bitcoin_tests.main.Path")
-    def test_clone_repo_already_exists(self, mock_path, capsys):
+    @patch("run_bitcoin_tests.main.clone_bitcoin_repo_enhanced")
+    def test_clone_repo_already_exists(self, mock_clone_enhanced, capsys):
         """Test when bitcoin directory already exists."""
-        mock_bitcoin_path = Mock()
-        mock_bitcoin_path.exists.return_value = True
-        mock_path.return_value = mock_bitcoin_path
-
         clone_bitcoin_repo("https://github.com/bitcoin/bitcoin", "master")
 
-        # Should not attempt to clone
-        mock_path.assert_called_once_with("bitcoin")
+        # Should call the enhanced clone function
+        mock_clone_enhanced.assert_called_once_with("https://github.com/bitcoin/bitcoin", "master", "bitcoin")
 
-    @patch("run_bitcoin_tests.main.run_command")
-    @patch("run_bitcoin_tests.main.Path")
-    def test_clone_repo_success(self, mock_path, mock_run_command, capsys):
+    @patch("run_bitcoin_tests.main.clone_bitcoin_repo_enhanced")
+    def test_clone_repo_success(self, mock_clone_enhanced, capsys):
         """Test successful repository cloning."""
-        # Setup mocks
-        mock_bitcoin_path = Mock()
-        mock_bitcoin_path.exists.return_value = False
-        mock_path.return_value = mock_bitcoin_path
-
-        mock_result = Mock()
-        mock_result.returncode = 0
-        mock_run_command.return_value = mock_result
+        # Mock the enhanced clone function to not raise an exception
+        mock_clone_enhanced.return_value = None
 
         clone_bitcoin_repo("https://github.com/bitcoin/bitcoin", "master")
 
-        # Verify git clone command was called
-        mock_run_command.assert_called_once()
-        args = mock_run_command.call_args[0][0]
-        assert args == ["git", "clone", "--depth", "1", "--branch", "master",
-                       "https://github.com/bitcoin/bitcoin", "bitcoin"]
+        # Verify the enhanced clone function was called
+        mock_clone_enhanced.assert_called_once_with("https://github.com/bitcoin/bitcoin", "master", "bitcoin")
 
-    @patch("run_bitcoin_tests.main.run_command")
-    @patch("run_bitcoin_tests.main.Path")
-    def test_clone_repo_failure(self, mock_path, mock_run_command, capsys):
+    @patch("run_bitcoin_tests.main.clone_bitcoin_repo_enhanced")
+    def test_clone_repo_failure(self, mock_clone_enhanced, capsys):
         """Test repository cloning failure."""
-        # Setup mocks
-        mock_bitcoin_path = Mock()
-        mock_bitcoin_path.exists.return_value = False
-        mock_path.return_value = mock_bitcoin_path
+        # Mock the enhanced clone function to raise an exception
+        mock_clone_enhanced.side_effect = Exception("Clone failed")
 
-        mock_result = Mock()
-        mock_result.returncode = 1
-        mock_run_command.return_value = mock_result
-
-        with pytest.raises(SystemExit) as exc_info:
+        with pytest.raises(Exception, match="Clone failed"):
             clone_bitcoin_repo("https://github.com/bitcoin/bitcoin", "master")
 
-        assert exc_info.value.code == 1
+        # Verify the enhanced clone function was called
+        mock_clone_enhanced.assert_called_once_with("https://github.com/bitcoin/bitcoin", "master", "bitcoin")
 
-    @patch("run_bitcoin_tests.main.run_command")
-    @patch("run_bitcoin_tests.main.Path")
-    def test_clone_repo_exception(self, mock_path, mock_run_command, capsys):
+    @patch("run_bitcoin_tests.main.clone_bitcoin_repo_enhanced")
+    def test_clone_repo_exception(self, mock_clone_enhanced, capsys):
         """Test repository cloning with exception."""
-        # Setup mocks
-        mock_bitcoin_path = Mock()
-        mock_bitcoin_path.exists.return_value = False
-        mock_path.return_value = mock_bitcoin_path
+        # Mock the enhanced clone function to raise an exception
+        mock_clone_enhanced.side_effect = Exception("Network error")
 
-        mock_run_command.side_effect = Exception("Network error")
-
-        with pytest.raises(SystemExit) as exc_info:
+        with pytest.raises(Exception, match="Network error"):
             clone_bitcoin_repo("https://github.com/bitcoin/bitcoin", "master")
 
-        assert exc_info.value.code == 1
+        # Verify the enhanced clone function was called
+        mock_clone_enhanced.assert_called_once_with("https://github.com/bitcoin/bitcoin", "master", "bitcoin")
 
 
 class TestCheckPrerequisites:

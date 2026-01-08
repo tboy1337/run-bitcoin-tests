@@ -91,30 +91,14 @@ class TestCloneRepoHypothesis:
         """Test clone_bitcoin_repo with various repository URLs and branches."""
         from run_bitcoin_tests.main import clone_bitcoin_repo
 
-        mock_result = Mock()
-        mock_result.returncode = 0
-
-        with patch("run_bitcoin_tests.main.Path") as mock_path, \
-             patch("run_bitcoin_tests.main.run_command", return_value=mock_result) as mock_run:
-
-            # Setup path mock to indicate bitcoin directory doesn't exist
-            mock_bitcoin_path = Mock()
-            mock_bitcoin_path.exists.return_value = False
-            mock_path.return_value = mock_bitcoin_path
+        with patch("run_bitcoin_tests.main.clone_bitcoin_repo_enhanced") as mock_clone_enhanced:
+            # Mock the enhanced clone function to not raise an exception
+            mock_clone_enhanced.return_value = None
 
             clone_bitcoin_repo(repo_url, branch)
 
-            # Verify git clone was called with correct parameters
-            mock_run.assert_called_once()
-            args = mock_run.call_args[0][0]
-            assert args[0] == "git"
-            assert args[1] == "clone"
-            assert args[2] == "--depth"
-            assert args[3] == "1"
-            assert args[4] == "--branch"
-            assert args[5] == branch
-            assert args[6] == repo_url
-            assert args[7] == "bitcoin"
+            # Verify the enhanced clone function was called with correct parameters
+            mock_clone_enhanced.assert_called_once_with(repo_url, branch, "bitcoin")
 
 
 class TestPrerequisitesHypothesis:

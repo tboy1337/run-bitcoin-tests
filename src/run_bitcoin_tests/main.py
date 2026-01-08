@@ -35,6 +35,10 @@ from pathlib import Path
 from typing import List, Optional
 
 from .logging_config import get_logger, setup_logging
+from .network_utils import (clone_bitcoin_repo_enhanced, ConnectionError as NetworkConnectionError,
+                           SSLError as NetworkSSLError, AuthenticationError as NetworkAuthError,
+                           RepositoryError as NetworkRepoError, DiskSpaceError as NetworkDiskError,
+                           TimeoutError as NetworkTimeoutError, NetworkError)
 from .validation import validate_branch_name, validate_git_url, ValidationError
 
 try:
@@ -84,29 +88,16 @@ def run_command(command: List[str], description: str) -> subprocess.CompletedPro
 
 def clone_bitcoin_repo(repo_url: str, branch: str) -> None:
     """Clone the Bitcoin repository if it doesn't exist."""
-    bitcoin_path = Path("bitcoin")
-
-    if bitcoin_path.exists():
-        print_colored("[OK] Bitcoin source directory already exists", Fore.GREEN)
-        return
-
-    print_colored(f"Cloning Bitcoin repository from {repo_url} (branch: {branch})...", Fore.YELLOW)
-
     try:
-        # Clone the repository
-        cmd = ["git", "clone", "--depth", "1", "--branch", branch, repo_url, "bitcoin"]
-        result = run_command(cmd, "Clone Bitcoin repository")
-
-        if result.returncode != 0:
-            print_colored("[ERROR] Failed to clone Bitcoin repository", Fore.RED)
-            sys.exit(1)
-
-        print_colored("[OK] Bitcoin repository cloned successfully", Fore.GREEN)
-
+        clone_bitcoin_repo_enhanced(repo_url, branch, "bitcoin")
+    except NetworkError as e:
+        # Network errors are already handled in the enhanced function
+        # Just re-raise to maintain the same interface
+        raise e
     except Exception as e:
         print_colored(f"[ERROR] Failed to clone repository: {e}", Fore.RED)
         print_colored("Please ensure git is installed and you have internet access.", Fore.WHITE)
-        sys.exit(1)
+        raise
 
 
 def check_prerequisites(repo_url: str, branch: str) -> None:
@@ -299,6 +290,48 @@ def main() -> None:
             logger.warning(f"Some tests failed (exit code: {exit_code})")
 
         sys.exit(exit_code)
+
+    except NetworkConnectionError as e:
+        logger.error(f"Network connection error: {e}")
+        print_colored(f"[NETWORK ERROR] Connection failed: {e}", Fore.RED)
+        print_colored("Please check your internet connection and try again.", Fore.WHITE)
+        cleanup_containers()
+        sys.exit(10)
+
+    except NetworkSSLError as e:
+        logger.error(f"SSL certificate error: {e}")
+        print_colored(f"[SSL ERROR] Certificate verification failed: {e}", Fore.RED)
+        print_colored("Try using HTTP instead of HTTPS or check your SSL settings.", Fore.WHITE)
+        cleanup_containers()
+        sys.exit(11)
+
+    except NetworkAuthError as e:
+        logger.error(f"Authentication error: {e}")
+        print_colored(f"[AUTH ERROR] Authentication failed: {e}", Fore.RED)
+        print_colored("Please check your credentials and repository access permissions.", Fore.WHITE)
+        cleanup_containers()
+        sys.exit(12)
+
+    except NetworkRepoError as e:
+        logger.error(f"Repository access error: {e}")
+        print_colored(f"[REPO ERROR] Repository access failed: {e}", Fore.RED)
+        print_colored("Please verify the repository URL and branch name are correct.", Fore.WHITE)
+        cleanup_containers()
+        sys.exit(13)
+
+    except NetworkDiskError as e:
+        logger.error(f"Disk space error: {e}")
+        print_colored(f"[DISK ERROR] Insufficient disk space: {e}", Fore.RED)
+        print_colored("Please free up disk space and try again.", Fore.WHITE)
+        cleanup_containers()
+        sys.exit(14)
+
+    except NetworkTimeoutError as e:
+        logger.error(f"Network timeout error: {e}")
+        print_colored(f"[TIMEOUT ERROR] Operation timed out: {e}", Fore.RED)
+        print_colored("The operation took too long. Try again or check your network speed.", Fore.WHITE)
+        cleanup_containers()
+        sys.exit(15)
 
     except KeyboardInterrupt:
         logger.warning("Operation cancelled by user (KeyboardInterrupt)")

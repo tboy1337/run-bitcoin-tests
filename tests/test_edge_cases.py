@@ -45,24 +45,17 @@ class TestEdgeCases:
             check=False
         )
 
-    @patch("run_bitcoin_tests.main.run_command")
-    @patch("run_bitcoin_tests.main.Path")
-    def test_clone_repo_with_unicode_branch_name(self, mock_path, mock_run_command):
+    @patch("run_bitcoin_tests.main.clone_bitcoin_repo_enhanced")
+    def test_clone_repo_with_unicode_branch_name(self, mock_clone_enhanced):
         """Test cloning with Unicode branch names."""
-        mock_bitcoin_path = Mock()
-        mock_bitcoin_path.exists.return_value = False
-        mock_path.return_value = mock_bitcoin_path
-
-        mock_result = Mock()
-        mock_result.returncode = 0
-        mock_run_command.return_value = mock_result
+        # Mock the enhanced clone function
+        mock_clone_enhanced.return_value = None
 
         unicode_branch = "feature/ñämé-tëst"
         clone_bitcoin_repo("https://github.com/bitcoin/bitcoin", unicode_branch)
 
-        # Verify the unicode branch name was passed correctly
-        args = mock_run_command.call_args[0][0]
-        assert args[5] == unicode_branch
+        # Verify the enhanced clone function was called with the unicode branch name
+        mock_clone_enhanced.assert_called_once_with("https://github.com/bitcoin/bitcoin", unicode_branch, "bitcoin")
 
     @patch("run_bitcoin_tests.main.clone_bitcoin_repo")
     @patch("run_bitcoin_tests.main.Path")
