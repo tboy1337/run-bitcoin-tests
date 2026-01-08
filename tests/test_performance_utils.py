@@ -124,7 +124,8 @@ class TestResourceOptimizer:
         # Should be min(8, 4/2) = min(8, 2) = 2
         assert optimal == 2
 
-        # Test with explicit limit
+        # Test with explicit limit (reset memory to high value)
+        mock_memory.return_value.total = 16 * 1024**3  # 16GB
         optimal = ResourceOptimizer.get_optimal_parallel_jobs(max_jobs=4)
         assert optimal == 4
 
@@ -135,7 +136,8 @@ class TestResourceOptimizer:
         assert optimal >= 1
 
     @patch('run_bitcoin_tests.performance_utils.os.nice')
-    def test_optimize_process_priority(self, mock_nice):
+    @patch('run_bitcoin_tests.performance_utils.platform.system', return_value='Linux')
+    def test_optimize_process_priority(self, mock_platform, mock_nice):
         """Test process priority optimization."""
         ResourceOptimizer.optimize_process_priority()
         mock_nice.assert_called_once_with(-5)
@@ -147,17 +149,20 @@ class TestResourceOptimizer:
         mock_gc.assert_called_once()
 
     @patch('run_bitcoin_tests.performance_utils.ResourceOptimizer.get_optimal_parallel_jobs', return_value=4)
+    @patch('run_bitcoin_tests.performance_utils.psutil.disk_usage')
     @patch('run_bitcoin_tests.performance_utils.psutil.virtual_memory')
     @patch('run_bitcoin_tests.performance_utils.psutil.cpu_freq')
     @patch('run_bitcoin_tests.performance_utils.multiprocessing.cpu_count', return_value=4)
     @patch('run_bitcoin_tests.performance_utils.platform.platform', return_value="Linux-5.4.0")
     @patch('run_bitcoin_tests.performance_utils.platform.python_version', return_value="3.9.0")
     def test_get_system_info(self, mock_py_version, mock_platform, mock_cpu_count,
-                           mock_cpu_freq, mock_memory):
+                           mock_cpu_freq, mock_memory, mock_disk):
         """Test system information collection."""
         mock_memory.return_value.total = 8 * 1024**3
         mock_memory.return_value.available = 6 * 1024**3
         mock_cpu_freq.return_value.current = 2500.0
+        mock_disk.return_value.total = 100 * 1024**3
+        mock_disk.return_value.free = 50 * 1024**3
 
         info = ResourceOptimizer.get_system_info()
 
@@ -268,6 +273,10 @@ class TestGlobalFunctions:
 
     def test_get_performance_monitor_singleton(self):
         """Test that get_performance_monitor returns singleton instances."""
+        # Reset the singleton for this test
+        import run_bitcoin_tests.performance_utils as pu
+        pu._performance_monitor = None
+
         monitor1 = get_performance_monitor(interval=0.1)
         monitor2 = get_performance_monitor(interval=0.2)
 

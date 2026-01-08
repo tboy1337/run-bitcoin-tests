@@ -219,6 +219,7 @@ class ParallelExecutor:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self._executor:
             self._executor.shutdown(wait=True)
+            self._executor = None
 
     def execute_parallel(self, tasks: List[Tuple[Callable, Tuple, Dict]]) -> List[Any]:
         """

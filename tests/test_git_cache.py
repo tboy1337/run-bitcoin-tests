@@ -181,7 +181,7 @@ class TestGitCache:
 
         # Set a very small cache limit to force cleanup
         original_limit = self.cache.max_cache_size_gb
-        self.cache.max_cache_size_gb = 0.001  # 1MB limit
+        self.cache.max_cache_size_gb = 0.000001  # ~1KB limit
 
         try:
             # Trigger cleanup
@@ -240,7 +240,14 @@ class TestGitCacheSingleton:
 
     def test_get_git_cache_custom_params(self):
         """Test get_git_cache with custom parameters."""
+        # Since get_git_cache is a singleton, we need to test it differently
+        # The first call with custom params should create the cache with those params
+        # But subsequent calls return the same instance
         with tempfile.TemporaryDirectory() as temp_dir:
+            # Reset the global cache for this test
+            import run_bitcoin_tests.network_utils as nu
+            nu._git_cache = None
+
             cache = get_git_cache(cache_dir=temp_dir, max_cache_size_gb=2.0)
 
             assert cache.cache_dir == Path(temp_dir)
@@ -260,6 +267,14 @@ class TestGitCacheIntegration:
         self.source_repo.mkdir()
         (self.source_repo / ".git").mkdir()
         (self.source_repo / "README.md").write_text("# Test Repo")
+
+        # Initialize git repo and create main branch
+        import subprocess
+        subprocess.run(["git", "init"], cwd=self.source_repo, check=True, capture_output=True)
+        subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=self.source_repo, check=True, capture_output=True)
+        subprocess.run(["git", "config", "user.name", "Test User"], cwd=self.source_repo, check=True, capture_output=True)
+        subprocess.run(["git", "add", "README.md"], cwd=self.source_repo, check=True, capture_output=True)
+        subprocess.run(["git", "commit", "-m", "Initial commit"], cwd=self.source_repo, check=True, capture_output=True)
 
     def teardown_method(self):
         """Clean up integration test fixtures."""

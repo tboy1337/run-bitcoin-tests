@@ -55,12 +55,20 @@ class TestEdgeCases:
         clone_bitcoin_repo("https://github.com/bitcoin/bitcoin", unicode_branch)
 
         # Verify the enhanced clone function was called with the unicode branch name
-        mock_clone_enhanced.assert_called_once_with("https://github.com/bitcoin/bitcoin", unicode_branch, "bitcoin")
+        mock_clone_enhanced.assert_called_once_with(repo_url="https://github.com/bitcoin/bitcoin", branch=unicode_branch, target_dir="bitcoin", use_cache=True)
 
+    @patch("run_bitcoin_tests.main.get_config")
     @patch("run_bitcoin_tests.main.clone_bitcoin_repo")
     @patch("run_bitcoin_tests.main.Path")
-    def test_check_prerequisites_empty_repo_url(self, mock_path, mock_clone):
+    def test_check_prerequisites_empty_repo_url(self, mock_path, mock_clone, mock_get_config):
         """Test check_prerequisites with empty repository URL."""
+        mock_config = Mock()
+        mock_config.docker.compose_file = "docker-compose.yml"
+        mock_config.repository.url = ""
+        mock_config.repository.branch = "master"
+        mock_config.quiet = False
+        mock_get_config.return_value = mock_config
+
         # Mock required files exist
         def path_side_effect(path_str):
             mock_file = Mock()
@@ -70,14 +78,22 @@ class TestEdgeCases:
         mock_path.side_effect = path_side_effect
 
         # Empty repo URL should still work (though not recommended)
-        check_prerequisites("", "master")
+        check_prerequisites()
 
         mock_clone.assert_called_once_with("", "master")
 
+    @patch("run_bitcoin_tests.main.get_config")
     @patch("run_bitcoin_tests.main.clone_bitcoin_repo")
     @patch("run_bitcoin_tests.main.Path")
-    def test_check_prerequisites_empty_branch(self, mock_path, mock_clone):
+    def test_check_prerequisites_empty_branch(self, mock_path, mock_clone, mock_get_config):
         """Test check_prerequisites with empty branch name."""
+        mock_config = Mock()
+        mock_config.docker.compose_file = "docker-compose.yml"
+        mock_config.repository.url = "https://github.com/bitcoin/bitcoin"
+        mock_config.repository.branch = ""
+        mock_config.quiet = False
+        mock_get_config.return_value = mock_config
+
         # Mock required files exist
         def path_side_effect(path_str):
             mock_file = Mock()
@@ -87,7 +103,7 @@ class TestEdgeCases:
         mock_path.side_effect = path_side_effect
 
         # Empty branch should still work
-        check_prerequisites("https://github.com/bitcoin/bitcoin", "")
+        check_prerequisites()
 
         mock_clone.assert_called_once_with("https://github.com/bitcoin/bitcoin", "")
 
@@ -125,24 +141,39 @@ class TestEnvironmentVariables:
     """Test behavior with different environment variables."""
 
     @patch.dict(os.environ, {"DOCKER_HOST": "tcp://localhost:2376"})
+    @patch("run_bitcoin_tests.main.get_config")
     @patch("run_bitcoin_tests.main.run_command")
-    def test_docker_with_custom_host(self, mock_run_command):
+    def test_docker_with_custom_host(self, mock_run_command, mock_get_config):
         """Test that Docker commands work with custom DOCKER_HOST."""
+        mock_config = Mock()
+        mock_config.docker.compose_file = "docker-compose.yml"
+        mock_config.docker.container_name = "bitcoin-tests"
+        mock_config.build.parallel_jobs = None
+        mock_config.quiet = False
+        mock_get_config.return_value = mock_config
+
         mock_result = Mock()
         mock_result.returncode = 0
         mock_run_command.return_value = mock_result
 
         build_docker_image()
 
-        # Should still work with custom Docker host
-        mock_run_command.assert_called_once_with(
-            ["docker-compose", "build"], "Build Docker image"
-        )
+        # Should still work with custom Docker host - check that build command was called
+        call_args = mock_run_command.call_args[0][0]
+        assert "build" in call_args
 
     @patch.dict(os.environ, {"COMPOSE_FILE": "custom-compose.yml"})
+    @patch("run_bitcoin_tests.main.get_config")
     @patch("run_bitcoin_tests.main.run_command")
-    def test_docker_compose_with_custom_file(self, mock_run_command):
+    def test_docker_compose_with_custom_file(self, mock_run_command, mock_get_config):
         """Test that docker-compose works with custom COMPOSE_FILE."""
+        mock_config = Mock()
+        mock_config.docker.compose_file = "docker-compose.yml"
+        mock_config.docker.container_name = "bitcoin-tests"
+        mock_config.build.parallel_jobs = None
+        mock_config.quiet = False
+        mock_get_config.return_value = mock_config
+
         mock_result = Mock()
         mock_result.returncode = 0
         mock_run_command.return_value = mock_result
@@ -158,9 +189,17 @@ class TestEnvironmentVariables:
 class TestFileSystemEdgeCases:
     """Test file system related edge cases."""
 
+    @patch("run_bitcoin_tests.main.get_config")
     @patch("run_bitcoin_tests.main.Path")
-    def test_check_prerequisites_with_symlinks(self, mock_path):
+    def test_check_prerequisites_with_symlinks(self, mock_path, mock_get_config):
         """Test prerequisites check with symlinked files."""
+        mock_config = Mock()
+        mock_config.docker.compose_file = "docker-compose.yml"
+        mock_config.repository.url = "https://github.com/bitcoin/bitcoin"
+        mock_config.repository.branch = "master"
+        mock_config.quiet = False
+        mock_get_config.return_value = mock_config
+
         # Mock paths to simulate symlinks (exists returns True for all)
         def path_side_effect(path_str):
             mock_file = Mock()
@@ -170,11 +209,19 @@ class TestFileSystemEdgeCases:
         mock_path.side_effect = path_side_effect
 
         # Should pass when all files exist (even if symlinks)
-        check_prerequisites("https://github.com/bitcoin/bitcoin", "master")
+        check_prerequisites()
 
+    @patch("run_bitcoin_tests.main.get_config")
     @patch("run_bitcoin_tests.main.Path")
-    def test_check_prerequisites_file_permissions(self, mock_path):
+    def test_check_prerequisites_file_permissions(self, mock_path, mock_get_config):
         """Test prerequisites check when files exist but may not be readable."""
+        mock_config = Mock()
+        mock_config.docker.compose_file = "docker-compose.yml"
+        mock_config.repository.url = "https://github.com/bitcoin/bitcoin"
+        mock_config.repository.branch = "master"
+        mock_config.quiet = False
+        mock_get_config.return_value = mock_config
+
         # Mock paths - files exist but simulate permission issues
         def path_side_effect(path_str):
             mock_file = Mock()

@@ -148,7 +148,9 @@ class TestCrossPlatformCommand:
 
             args = ['git', 'clone', 'https://example.com/repo', '--branch', 'main']
             normalized = cmd.normalize_command_args(args)
-            assert normalized == args  # Should not change non-path args
+            # On Windows, paths get converted to backslashes
+            expected = ['git', 'clone', 'https://example.com/repo', '--branch', 'main']
+            assert normalized == expected
 
     def test_normalize_command_args_unix(self):
         """Test command argument normalization on Unix."""
@@ -222,7 +224,10 @@ class TestPathUtils:
 
         sub_path = base_dir / "sub" / "file.txt"
         relative = self.path_utils.get_relative_path(sub_path, base_dir)
-        assert str(relative) == "sub/file.txt"
+        # Use os.path.join for cross-platform path comparison
+        import os
+        expected = os.path.join("sub", "file.txt")
+        assert str(relative) == expected
 
         # Test with non-relative paths
         outside_path = Path("/tmp/outside.txt")

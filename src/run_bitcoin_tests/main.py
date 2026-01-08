@@ -516,7 +516,8 @@ Configuration:
     if args.show_config:
         try:
             config = load_config(args)
-            print(config.get_summary())
+            from .config import config_manager
+            print(config_manager.get_summary())
             sys.exit(0)
         except ValueError as e:
             print_colored(f"[CONFIG ERROR] {e}", Fore.RED)
@@ -582,14 +583,16 @@ def main() -> None:
 
     print_colored("Bitcoin Core C++ Tests Runner", Fore.CYAN, bright=True)
     if not config.quiet:
-        print_colored(config.get_summary(), Fore.WHITE)
+        from .config import config_manager
+        print_colored(config_manager.get_summary(), Fore.WHITE)
         print()
 
     start_time = datetime.now()
     if not config.quiet:
         print_colored(f"Started at {start_time.strftime('%Y-%m-%d %H:%M:%S')}", Fore.WHITE)
     logger.info("Starting Bitcoin Core tests runner")
-    logger.info(f"Configuration: {config.get_summary().replace(chr(10), ' | ')}")
+    from .config import config_manager
+    logger.info(f"Configuration: {config_manager.get_summary().replace(chr(10), ' | ')}")
     if not config.quiet:
         print()
 

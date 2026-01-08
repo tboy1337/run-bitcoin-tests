@@ -41,7 +41,7 @@ import threading
 import time
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional, Set
 
 from .logging_config import get_logger
 
@@ -55,7 +55,7 @@ _temp_dir_lock = threading.RLock()
 # Global state for tracking resources
 _active_containers: Set[str] = set()
 _temp_directories: Set[Path] = set()
-_cleanup_handlers: List[callable] = []
+_cleanup_handlers: List[Callable[[], None]] = []
 
 # Thread-local storage for per-thread resources
 _thread_local = threading.local()
