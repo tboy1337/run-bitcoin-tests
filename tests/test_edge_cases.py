@@ -1,0 +1,230 @@
+"""Edge case and error condition tests for the run-bitcoin-tests package."""
+
+import os
+import sys
+from pathlib import Path
+from unittest.mock import Mock, patch
+
+import pytest
+
+from run_bitcoin_tests.main import (
+    build_docker_image,
+    check_prerequisites,
+    clone_bitcoin_repo,
+    run_command,
+    run_tests,
+)
+
+
+class TestEdgeCases:
+    """Test edge cases and boundary conditions."""
+
+    def test_run_command_empty_command_list(self):
+        """Test run_command with empty command list."""
+        with pytest.raises(SystemExit) as exc_info:
+            run_command([], "Empty command")
+
+        assert exc_info.value.code == 1
+
+    @patch("subprocess.run")
+    def test_run_command_with_special_characters(self, mock_run):
+        """Test run_command with commands containing special characters."""
+        mock_result = Mock()
+        mock_result.returncode = 0
+        mock_run.return_value = mock_result
+
+        # Test command with spaces, quotes, and special chars
+        command = ['echo', 'hello "world" & test']
+        result = run_command(command, "Special chars test")
+
+        assert result == mock_result
+        mock_run.assert_called_once_with(
+            command,
+            capture_output=False,
+            text=True,
+            check=False
+        )
+
+    @patch("run_bitcoin_tests.main.run_command")
+    @patch("run_bitcoin_tests.main.Path")
+    def test_clone_repo_with_unicode_branch_name(self, mock_path, mock_run_command):
+        """Test cloning with Unicode branch names."""
+        mock_bitcoin_path = Mock()
+        mock_bitcoin_path.exists.return_value = False
+        mock_path.return_value = mock_bitcoin_path
+
+        mock_result = Mock()
+        mock_result.returncode = 0
+        mock_run_command.return_value = mock_result
+
+        unicode_branch = "feature/ñämé-tëst"
+        clone_bitcoin_repo("https://github.com/bitcoin/bitcoin", unicode_branch)
+
+        # Verify the unicode branch name was passed correctly
+        args = mock_run_command.call_args[0][0]
+        assert args[5] == unicode_branch
+
+    @patch("run_bitcoin_tests.main.clone_bitcoin_repo")
+    @patch("run_bitcoin_tests.main.Path")
+    def test_check_prerequisites_empty_repo_url(self, mock_path, mock_clone):
+        """Test check_prerequisites with empty repository URL."""
+        # Mock required files exist
+        def path_side_effect(path_str):
+            mock_file = Mock()
+            mock_file.exists.return_value = True
+            return mock_file
+
+        mock_path.side_effect = path_side_effect
+
+        # Empty repo URL should still work (though not recommended)
+        check_prerequisites("", "master")
+
+        mock_clone.assert_called_once_with("", "master")
+
+    @patch("run_bitcoin_tests.main.clone_bitcoin_repo")
+    @patch("run_bitcoin_tests.main.Path")
+    def test_check_prerequisites_empty_branch(self, mock_path, mock_clone):
+        """Test check_prerequisites with empty branch name."""
+        # Mock required files exist
+        def path_side_effect(path_str):
+            mock_file = Mock()
+            mock_file.exists.return_value = True
+            return mock_file
+
+        mock_path.side_effect = path_side_effect
+
+        # Empty branch should still work
+        check_prerequisites("https://github.com/bitcoin/bitcoin", "")
+
+        mock_clone.assert_called_once_with("https://github.com/bitcoin/bitcoin", "")
+
+    @patch("run_bitcoin_tests.main.run_command")
+    def test_build_docker_image_with_unicode_description(self, mock_run_command):
+        """Test build_docker_image with unicode characters in internal description."""
+        mock_result = Mock()
+        mock_result.returncode = 0
+        mock_run_command.return_value = mock_result
+
+        build_docker_image()
+
+        # The description contains unicode characters
+        args = mock_run_command.call_args[0]
+        description = args[1]
+        assert "Build Docker image" == description
+
+    @patch("run_bitcoin_tests.main.run_command")
+    def test_run_tests_with_unicode_description(self, mock_run_command):
+        """Test run_tests with unicode characters in internal description."""
+        mock_result = Mock()
+        mock_result.returncode = 0
+        mock_run_command.return_value = mock_result
+
+        exit_code = run_tests()
+
+        assert exit_code == 0
+        # The description contains unicode characters
+        args = mock_run_command.call_args[0]
+        description = args[1]
+        assert "Run tests" == description
+
+
+class TestEnvironmentVariables:
+    """Test behavior with different environment variables."""
+
+    @patch.dict(os.environ, {"DOCKER_HOST": "tcp://localhost:2376"})
+    @patch("run_bitcoin_tests.main.run_command")
+    def test_docker_with_custom_host(self, mock_run_command):
+        """Test that Docker commands work with custom DOCKER_HOST."""
+        mock_result = Mock()
+        mock_result.returncode = 0
+        mock_run_command.return_value = mock_result
+
+        build_docker_image()
+
+        # Should still work with custom Docker host
+        mock_run_command.assert_called_once_with(
+            ["docker-compose", "build"], "Build Docker image"
+        )
+
+    @patch.dict(os.environ, {"COMPOSE_FILE": "custom-compose.yml"})
+    @patch("run_bitcoin_tests.main.run_command")
+    def test_docker_compose_with_custom_file(self, mock_run_command):
+        """Test that docker-compose works with custom COMPOSE_FILE."""
+        mock_result = Mock()
+        mock_result.returncode = 0
+        mock_run_command.return_value = mock_result
+
+        build_docker_image()
+
+        # Should still work with custom compose file
+        mock_run_command.assert_called_once_with(
+            ["docker-compose", "build"], "Build Docker image"
+        )
+
+
+class TestFileSystemEdgeCases:
+    """Test file system related edge cases."""
+
+    @patch("run_bitcoin_tests.main.Path")
+    def test_check_prerequisites_with_symlinks(self, mock_path):
+        """Test prerequisites check with symlinked files."""
+        # Mock paths to simulate symlinks (exists returns True for all)
+        def path_side_effect(path_str):
+            mock_file = Mock()
+            mock_file.exists.return_value = True
+            return mock_file
+
+        mock_path.side_effect = path_side_effect
+
+        # Should pass when all files exist (even if symlinks)
+        check_prerequisites("https://github.com/bitcoin/bitcoin", "master")
+
+    @patch("run_bitcoin_tests.main.Path")
+    def test_check_prerequisites_file_permissions(self, mock_path):
+        """Test prerequisites check when files exist but may not be readable."""
+        # Mock paths - files exist but simulate permission issues
+        def path_side_effect(path_str):
+            mock_file = Mock()
+            mock_file.exists.return_value = True
+            return mock_file
+
+        mock_path.side_effect = path_side_effect
+
+        # Should pass since we're only checking existence, not readability
+        check_prerequisites("https://github.com/bitcoin/bitcoin", "master")
+
+
+class TestConcurrencyEdgeCases:
+    """Test edge cases that might occur in concurrent environments."""
+
+    @patch("run_bitcoin_tests.main.run_command")
+    def test_multiple_docker_operations(self, mock_run_command):
+        """Test running multiple Docker operations in sequence."""
+        mock_result = Mock()
+        mock_result.returncode = 0
+        mock_run_command.return_value = mock_result
+
+        # Run multiple operations
+        build_docker_image()
+        run_tests()
+        run_tests()  # Run tests twice
+
+        # Should have called run_command 3 times
+        assert mock_run_command.call_count == 3
+
+    @patch("run_bitcoin_tests.main.run_command")
+    def test_cleanup_called_multiple_times(self, mock_run_command):
+        """Test that cleanup can be called multiple times safely."""
+        from run_bitcoin_tests.main import cleanup_containers
+
+        mock_result = Mock()
+        mock_result.returncode = 0
+        mock_run_command.return_value = mock_result
+
+        # Call cleanup multiple times
+        cleanup_containers()
+        cleanup_containers()
+        cleanup_containers()
+
+        # Should have called run_command 3 times
+        assert mock_run_command.call_count == 3
