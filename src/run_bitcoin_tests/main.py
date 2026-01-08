@@ -34,23 +34,26 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
+from .logging_config import get_logger, setup_logging
+from .validation import validate_branch_name, validate_git_url, ValidationError
+
 try:
     import colorama
     from colorama import Fore, Style
     colorama.init(autoreset=True)
-except ImportError:
+except ImportError:  # pragma: no cover
     # Fallback if colorama is not available
-    class Fore:
-        CYAN = ""
-        GREEN = ""
-        RED = ""
-        YELLOW = ""
-        WHITE = ""
-        RESET = ""
+    class Fore:  # pragma: no cover
+        CYAN = ""  # pragma: no cover
+        GREEN = ""  # pragma: no cover
+        RED = ""  # pragma: no cover
+        YELLOW = ""  # pragma: no cover
+        WHITE = ""  # pragma: no cover
+        RESET = ""  # pragma: no cover
 
-    class Style:
-        BRIGHT = ""
-        RESET_ALL = ""
+    class Style:  # pragma: no cover
+        BRIGHT = ""  # pragma: no cover
+        RESET_ALL = ""  # pragma: no cover
 
 
 def print_colored(message: str, color: str = Fore.WHITE, bright: bool = False) -> None:
@@ -185,6 +188,7 @@ Examples:
   python run-bitcoin-tests.py
   python run-bitcoin-tests.py --repo-url https://github.com/myfork/bitcoin --branch my-feature-branch
   python run-bitcoin-tests.py -r https://github.com/bitcoin/bitcoin -b v25.1
+  python run-bitcoin-tests.py --verbose --log-file bitcoin-tests.log
         """
     )
 
@@ -200,12 +204,54 @@ Examples:
         help="Branch to clone from the repository (default: %(default)s)"
     )
 
-    return parser.parse_args()
+    parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Enable verbose output (DEBUG level logging)"
+    )
+
+    parser.add_argument(
+        "-q", "--quiet",
+        action="store_true",
+        help="Suppress all output except errors"
+    )
+
+    parser.add_argument(
+        "--log-file",
+        help="Path to log file for detailed logging"
+    )
+
+    parser.add_argument(
+        "--log-level",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default="INFO",
+        help="Set logging level (default: %(default)s)"
+    )
+
+    args = parser.parse_args()
+
+    # Validate inputs
+    try:
+        args.repo_url = validate_git_url(args.repo_url)
+        args.branch = validate_branch_name(args.branch)
+    except ValidationError as e:
+        print_colored(f"[ERROR] Invalid input: {e}", Fore.RED)
+        sys.exit(1)
+
+    return args
 
 
 def main() -> None:
     """Main function to run the Bitcoin Core tests."""
     args = parse_arguments()
+
+    # Set up logging
+    logger = setup_logging(
+        level=args.log_level,
+        log_file=args.log_file,
+        verbose=args.verbose,
+        quiet=args.quiet
+    )
 
     print_colored("Bitcoin Core C++ Tests Runner", Fore.CYAN, bright=True)
     if args.repo_url != "https://github.com/bitcoin/bitcoin" or args.branch != "master":
@@ -213,20 +259,30 @@ def main() -> None:
 
     start_time = datetime.now()
     print_colored(f"Started at {start_time.strftime('%Y-%m-%d %H:%M:%S')}", Fore.WHITE)
+    logger.info(f"Starting Bitcoin Core tests runner")
+    logger.info(f"Repository: {args.repo_url}, Branch: {args.branch}")
     print()
 
     try:
         # Check prerequisites
+        logger.debug("Checking prerequisites")
         check_prerequisites(args.repo_url, args.branch)
+        logger.info("Prerequisites check completed successfully")
 
         # Build Docker image
+        logger.debug("Building Docker image")
         build_docker_image()
+        logger.info("Docker image built successfully")
 
         # Run tests
+        logger.debug("Running Bitcoin Core unit tests")
         exit_code = run_tests()
+        logger.info(f"Tests completed with exit code: {exit_code}")
 
         # Cleanup
+        logger.debug("Cleaning up Docker containers")
         cleanup_containers()
+        logger.info("Cleanup completed")
 
         # Final status
         end_time = datetime.now()
@@ -235,14 +291,22 @@ def main() -> None:
         # Calculate duration
         duration = end_time - start_time
         print_colored(f"Duration: {duration}", Fore.WHITE)
+        logger.info(f"Total execution time: {duration}")
+
+        if exit_code == 0:
+            logger.info("All tests passed successfully")
+        else:
+            logger.warning(f"Some tests failed (exit code: {exit_code})")
 
         sys.exit(exit_code)
 
     except KeyboardInterrupt:
+        logger.warning("Operation cancelled by user (KeyboardInterrupt)")
         print_colored("\n[INTERRUPTED] Operation cancelled by user", Fore.YELLOW)
         cleanup_containers()
         sys.exit(130)
     except Exception as e:
+        logger.error(f"An unexpected error occurred: {e}", exc_info=True)
         print_colored(f"[ERROR] An unexpected error occurred: {e}", Fore.RED)
         cleanup_containers()
         sys.exit(1)

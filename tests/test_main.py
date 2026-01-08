@@ -45,6 +45,7 @@ class TestPrintColored:
 
 
 
+
 class TestRunCommand:
     """Test run_command function."""
 
