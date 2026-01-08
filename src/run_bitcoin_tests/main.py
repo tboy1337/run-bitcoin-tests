@@ -39,6 +39,8 @@ from .network_utils import (clone_bitcoin_repo_enhanced, ConnectionError as Netw
                            SSLError as NetworkSSLError, AuthenticationError as NetworkAuthError,
                            RepositoryError as NetworkRepoError, DiskSpaceError as NetworkDiskError,
                            TimeoutError as NetworkTimeoutError, NetworkError)
+from .thread_utils import (atomic_directory_operation, docker_container_lock, file_system_lock,
+                          initialize_thread_safety, register_cleanup_handler, resource_tracker)
 from .validation import validate_branch_name, validate_git_url, ValidationError
 
 try:
@@ -104,30 +106,32 @@ def check_prerequisites(repo_url: str, branch: str) -> None:
     """Check if required files exist and clone repo if needed."""
     print_colored("Checking prerequisites...", Fore.YELLOW)
 
-    # Check for Docker-related files
-    required_files = ["docker-compose.yml", "Dockerfile"]
+    # Check for Docker-related files (thread-safe)
+    with file_system_lock("check_docker_files"):
+        required_files = ["docker-compose.yml", "Dockerfile"]
 
-    missing_files = []
-    for file_str in required_files:
-        file_path = Path(file_str)
-        if not file_path.exists():
-            missing_files.append(file_str)
+        missing_files = []
+        for file_str in required_files:
+            file_path = Path(file_str)
+            if not file_path.exists():
+                missing_files.append(file_str)
 
-    if missing_files:
-        print_colored("[ERROR] Missing required files:", Fore.RED)
-        for file in missing_files:
-            print_colored(f"  - {file}", Fore.RED)
-        sys.exit(1)
+        if missing_files:
+            print_colored("[ERROR] Missing required files:", Fore.RED)
+            for file in missing_files:
+                print_colored(f"  - {file}", Fore.RED)
+            sys.exit(1)
 
-    # Clone Bitcoin repo if needed
+    # Clone Bitcoin repo if needed (already thread-safe via enhanced function)
     clone_bitcoin_repo(repo_url, branch)
 
-    # Verify Bitcoin source after cloning
-    bitcoin_cmake = Path("bitcoin/CMakeLists.txt")
-    if not bitcoin_cmake.exists():
-        print_colored("[ERROR] Bitcoin CMakeLists.txt not found after cloning", Fore.RED)
-        print_colored("The repository may not be a valid Bitcoin Core repository.", Fore.WHITE)
-        sys.exit(1)
+    # Verify Bitcoin source after cloning (thread-safe)
+    with file_system_lock("verify_bitcoin_source"):
+        bitcoin_cmake = Path("bitcoin/CMakeLists.txt")
+        if not bitcoin_cmake.exists():
+            print_colored("[ERROR] Bitcoin CMakeLists.txt not found after cloning", Fore.RED)
+            print_colored("The repository may not be a valid Bitcoin Core repository.", Fore.WHITE)
+            sys.exit(1)
 
     print_colored("[OK] Prerequisites check passed", Fore.GREEN)
     print()
@@ -137,11 +141,12 @@ def build_docker_image() -> None:
     """Build the Docker image for Bitcoin Core tests."""
     print_colored("Building Docker image...", Fore.YELLOW)
 
-    result = run_command(["docker-compose", "build"], "Build Docker image")
+    with docker_container_lock("bitcoin-tests-build"):
+        result = run_command(["docker-compose", "build"], "Build Docker image")
 
-    if result.returncode != 0:
-        print_colored("[ERROR] Failed to build Docker image", Fore.RED)
-        sys.exit(1)
+        if result.returncode != 0:
+            print_colored("[ERROR] Failed to build Docker image", Fore.RED)
+            sys.exit(1)
 
     print_colored("[OK] Docker image built successfully", Fore.GREEN)
     print()
@@ -151,7 +156,8 @@ def run_tests() -> int:
     """Run the Bitcoin Core unit tests."""
     print_colored("Running Bitcoin Core unit tests...", Fore.YELLOW)
 
-    result = run_command(["docker-compose", "run", "--rm", "bitcoin-tests"], "Run tests")
+    with docker_container_lock("bitcoin-tests-runner"):
+        result = run_command(["docker-compose", "run", "--rm", "bitcoin-tests"], "Run tests")
 
     print()
     if result.returncode == 0:
@@ -166,7 +172,12 @@ def run_tests() -> int:
 def cleanup_containers() -> None:
     """Clean up Docker containers and networks."""
     print_colored("Cleaning up containers...", Fore.YELLOW)
-    run_command(["docker-compose", "down", "--remove-orphans"], "Cleanup containers")
+
+    with docker_container_lock("bitcoin-tests-cleanup"):
+        run_command(["docker-compose", "down", "--remove-orphans"], "Cleanup containers")
+
+    # Also cleanup any tracked resources
+    resource_tracker.cleanup_all_resources()
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -235,6 +246,9 @@ Examples:
 def main() -> None:
     """Main function to run the Bitcoin Core tests."""
     args = parse_arguments()
+
+    # Initialize thread safety
+    initialize_thread_safety()
 
     # Set up logging
     logger = setup_logging(

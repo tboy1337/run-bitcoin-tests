@@ -18,6 +18,7 @@ from typing import List, Optional, Tuple
 from urllib.parse import urlparse
 
 from .logging_config import get_logger
+from .thread_utils import atomic_directory_operation, file_system_lock
 
 logger = get_logger(__name__)
 
@@ -319,7 +320,7 @@ def _is_disk_space_error(error_msg: str) -> bool:
 
 def clone_bitcoin_repo_enhanced(repo_url: str, branch: str, target_dir: str = "bitcoin") -> None:
     """
-    Enhanced Bitcoin repository cloning with comprehensive error handling.
+    Enhanced Bitcoin repository cloning with comprehensive error handling and thread safety.
 
     Args:
         repo_url: URL of the repository to clone
@@ -334,10 +335,12 @@ def clone_bitcoin_repo_enhanced(repo_url: str, branch: str, target_dir: str = "b
     """
     target_path = Path(target_dir)
 
-    if target_path.exists():
-        print_colored(f"[OK] Bitcoin source directory '{target_dir}' already exists", Fore.GREEN)
-        logger.info(f"Repository directory {target_dir} already exists, skipping clone")
-        return
+    # Thread-safe check for existing directory
+    with file_system_lock(f"check_existing_repo_{target_dir}"):
+        if target_path.exists():
+            print_colored(f"[OK] Bitcoin source directory '{target_dir}' already exists", Fore.GREEN)
+            logger.info(f"Repository directory {target_dir} already exists, skipping clone")
+            return
 
     print_colored(f"Cloning Bitcoin repository from {repo_url} (branch: {branch})...", Fore.YELLOW)
     logger.info(f"Starting repository clone from {repo_url} branch {branch} to {target_dir}")
@@ -349,6 +352,12 @@ def clone_bitcoin_repo_enhanced(repo_url: str, branch: str, target_dir: str = "b
         print_colored(f"  {diag}", Fore.WHITE)
 
     try:
+        # Ensure parent directory exists in a thread-safe manner
+        parent_dir = target_path.parent
+        if str(parent_dir) != ".":  # Only if parent is not current directory
+            with atomic_directory_operation(parent_dir, "create_parent_for_clone"):
+                pass  # Directory creation handled by context manager
+
         # Use shallow clone for faster downloads and less disk usage
         cmd = ["git", "clone", "--depth", "1", "--branch", branch, repo_url, target_dir]
 
