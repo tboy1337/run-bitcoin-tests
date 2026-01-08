@@ -34,6 +34,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
+from .config import get_config, load_config
 from .logging_config import get_logger, setup_logging
 from .network_utils import (clone_bitcoin_repo_enhanced, ConnectionError as NetworkConnectionError,
                            SSLError as NetworkSSLError, AuthenticationError as NetworkAuthError,
@@ -90,8 +91,15 @@ def run_command(command: List[str], description: str) -> subprocess.CompletedPro
 
 def clone_bitcoin_repo(repo_url: str, branch: str) -> None:
     """Clone the Bitcoin repository if it doesn't exist."""
+    config = get_config()
+
     try:
-        clone_bitcoin_repo_enhanced(repo_url, branch, "bitcoin")
+        # Use configuration values for clone parameters
+        clone_bitcoin_repo_enhanced(
+            repo_url=repo_url,
+            branch=branch,
+            target_dir="bitcoin"
+        )
     except NetworkError as e:
         # Network errors are already handled in the enhanced function
         # Just re-raise to maintain the same interface
@@ -102,13 +110,16 @@ def clone_bitcoin_repo(repo_url: str, branch: str) -> None:
         raise
 
 
-def check_prerequisites(repo_url: str, branch: str) -> None:
+def check_prerequisites() -> None:
     """Check if required files exist and clone repo if needed."""
-    print_colored("Checking prerequisites...", Fore.YELLOW)
+    config = get_config()
+
+    if not config.quiet:
+        print_colored("Checking prerequisites...", Fore.YELLOW)
 
     # Check for Docker-related files (thread-safe)
     with file_system_lock("check_docker_files"):
-        required_files = ["docker-compose.yml", "Dockerfile"]
+        required_files = [config.docker.compose_file, "Dockerfile"]
 
         missing_files = []
         for file_str in required_files:
@@ -123,7 +134,7 @@ def check_prerequisites(repo_url: str, branch: str) -> None:
             sys.exit(1)
 
     # Clone Bitcoin repo if needed (already thread-safe via enhanced function)
-    clone_bitcoin_repo(repo_url, branch)
+    clone_bitcoin_repo(config.repository.url, config.repository.branch)
 
     # Verify Bitcoin source after cloning (thread-safe)
     with file_system_lock("verify_bitcoin_source"):
@@ -133,38 +144,55 @@ def check_prerequisites(repo_url: str, branch: str) -> None:
             print_colored("The repository may not be a valid Bitcoin Core repository.", Fore.WHITE)
             sys.exit(1)
 
-    print_colored("[OK] Prerequisites check passed", Fore.GREEN)
-    print()
+    if not config.quiet:
+        print_colored("[OK] Prerequisites check passed", Fore.GREEN)
+        print()
 
 
 def build_docker_image() -> None:
     """Build the Docker image for Bitcoin Core tests."""
-    print_colored("Building Docker image...", Fore.YELLOW)
+    config = get_config()
 
-    with docker_container_lock("bitcoin-tests-build"):
-        result = run_command(["docker-compose", "build"], "Build Docker image")
+    if not config.quiet:
+        print_colored("Building Docker image...", Fore.YELLOW)
+
+    container_name = f"{config.docker.container_name}-build"
+    with docker_container_lock(container_name):
+        cmd = ["docker-compose", "-f", config.docker.compose_file, "build"]
+        if config.build.parallel_jobs and config.build.parallel_jobs > 1:
+            # Add build arguments for parallel jobs
+            cmd.extend(["--build-arg", f"CMAKE_BUILD_PARALLEL_LEVEL={config.build.parallel_jobs}"])
+
+        result = run_command(cmd, "Build Docker image")
 
         if result.returncode != 0:
             print_colored("[ERROR] Failed to build Docker image", Fore.RED)
             sys.exit(1)
 
-    print_colored("[OK] Docker image built successfully", Fore.GREEN)
-    print()
+    if not config.quiet:
+        print_colored("[OK] Docker image built successfully", Fore.GREEN)
+        print()
 
 
 def run_tests() -> int:
     """Run the Bitcoin Core unit tests."""
-    print_colored("Running Bitcoin Core unit tests...", Fore.YELLOW)
+    config = get_config()
 
-    with docker_container_lock("bitcoin-tests-runner"):
-        result = run_command(["docker-compose", "run", "--rm", "bitcoin-tests"], "Run tests")
+    if not config.quiet:
+        print_colored("Running Bitcoin Core unit tests...", Fore.YELLOW)
 
-    print()
-    if result.returncode == 0:
-        print_colored("[SUCCESS] All tests passed!", Fore.GREEN)
-    else:
-        print_colored("[FAILED] Some tests failed", Fore.RED)
-        print_colored(f"Exit code: {result.returncode}", Fore.WHITE)
+    container_name = f"{config.docker.container_name}-runner"
+    with docker_container_lock(container_name):
+        cmd = ["docker-compose", "run", "--rm", config.docker.container_name]
+        result = run_command(cmd, "Run tests")
+
+    if not config.quiet:
+        print()
+        if result.returncode == 0:
+            print_colored("[SUCCESS] All tests passed!", Fore.GREEN)
+        else:
+            print_colored("[FAILED] Some tests failed", Fore.RED)
+            print_colored(f"Exit code: {result.returncode}", Fore.WHITE)
 
     return result.returncode
 
@@ -191,21 +219,54 @@ Examples:
   python run-bitcoin-tests.py --repo-url https://github.com/myfork/bitcoin --branch my-feature-branch
   python run-bitcoin-tests.py -r https://github.com/bitcoin/bitcoin -b v25.1
   python run-bitcoin-tests.py --verbose --log-file bitcoin-tests.log
+  python run-bitcoin-tests.py --config .env.production
+  python run-bitcoin-tests.py --dry-run
+
+Configuration:
+  Settings can be configured via command line arguments, environment variables,
+  or .env files. Precedence: CLI args > env vars > .env files > defaults.
+
+  Common .env file settings:
+    BTC_REPO_URL=https://github.com/bitcoin/bitcoin
+    BTC_REPO_BRANCH=master
+    BTC_BUILD_TYPE=RelWithDebInfo
+    BTC_LOG_LEVEL=INFO
+    BTC_TEST_TIMEOUT=3600
         """
     )
 
+    # Repository options
     parser.add_argument(
         "-r", "--repo-url",
-        default="https://github.com/bitcoin/bitcoin",
-        help="Git repository URL to clone Bitcoin from (default: %(default)s)"
+        help="Git repository URL to clone Bitcoin from"
     )
 
     parser.add_argument(
         "-b", "--branch",
-        default="master",
-        help="Branch to clone from the repository (default: %(default)s)"
+        help="Branch to clone from the repository"
     )
 
+    # Build options
+    parser.add_argument(
+        "--build-type",
+        choices=["Debug", "Release", "RelWithDebInfo", "MinSizeRel"],
+        help="CMake build type"
+    )
+
+    parser.add_argument(
+        "--build-jobs",
+        type=int,
+        help="Number of parallel build jobs (0 = auto-detect)"
+    )
+
+    # Docker options
+    parser.add_argument(
+        "--keep-containers",
+        action="store_true",
+        help="Keep Docker containers after execution"
+    )
+
+    # Logging options
     parser.add_argument(
         "-v", "--verbose",
         action="store_true",
@@ -226,19 +287,59 @@ Examples:
     parser.add_argument(
         "--log-level",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        default="INFO",
-        help="Set logging level (default: %(default)s)"
+        help="Set logging level"
+    )
+
+    # Configuration options
+    parser.add_argument(
+        "--config",
+        help="Path to .env configuration file to load"
+    )
+
+    parser.add_argument(
+        "--save-config",
+        help="Save current configuration to .env file"
+    )
+
+    # Application options
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be executed without running operations"
+    )
+
+    parser.add_argument(
+        "--show-config",
+        action="store_true",
+        help="Show current configuration and exit"
     )
 
     args = parser.parse_args()
 
-    # Validate inputs
-    try:
-        args.repo_url = validate_git_url(args.repo_url)
-        args.branch = validate_branch_name(args.branch)
-    except ValidationError as e:
-        print_colored(f"[ERROR] Invalid input: {e}", Fore.RED)
-        sys.exit(1)
+    # Handle special cases
+    if args.config:
+        from .config import config_manager
+        config_manager.load_from_env_file(args.config)
+
+    if args.show_config:
+        try:
+            config = load_config(args)
+            print(config.get_summary())
+            sys.exit(0)
+        except ValueError as e:
+            print_colored(f"[CONFIG ERROR] {e}", Fore.RED)
+            sys.exit(1)
+
+    if args.save_config:
+        try:
+            config = load_config(args)
+            from .config import config_manager
+            config_manager.save_to_env_file(args.save_config)
+            print_colored(f"Configuration saved to {args.save_config}", Fore.GREEN)
+            sys.exit(0)
+        except Exception as e:
+            print_colored(f"[ERROR] Failed to save configuration: {e}", Fore.RED)
+            sys.exit(1)
 
     return args
 
@@ -247,31 +348,50 @@ def main() -> None:
     """Main function to run the Bitcoin Core tests."""
     args = parse_arguments()
 
+    # Load configuration (this will load from .env files, env vars, and CLI args)
+    try:
+        config = load_config(args)
+    except ValueError as e:
+        print_colored(f"[CONFIG ERROR] {e}", Fore.RED)
+        sys.exit(1)
+
     # Initialize thread safety
     initialize_thread_safety()
 
-    # Set up logging
+    # Set up logging using configuration
     logger = setup_logging(
-        level=args.log_level,
-        log_file=args.log_file,
-        verbose=args.verbose,
-        quiet=args.quiet
+        level=config.logging.level,
+        log_file=config.logging.file,
+        verbose=config.verbose,
+        quiet=config.quiet
     )
 
     print_colored("Bitcoin Core C++ Tests Runner", Fore.CYAN, bright=True)
-    if args.repo_url != "https://github.com/bitcoin/bitcoin" or args.branch != "master":
-        print_colored(f"Repository: {args.repo_url} (branch: {args.branch})", Fore.WHITE)
+    if not config.quiet:
+        print_colored(config.get_summary(), Fore.WHITE)
+        print()
 
     start_time = datetime.now()
-    print_colored(f"Started at {start_time.strftime('%Y-%m-%d %H:%M:%S')}", Fore.WHITE)
-    logger.info(f"Starting Bitcoin Core tests runner")
-    logger.info(f"Repository: {args.repo_url}, Branch: {args.branch}")
-    print()
+    if not config.quiet:
+        print_colored(f"Started at {start_time.strftime('%Y-%m-%d %H:%M:%S')}", Fore.WHITE)
+    logger.info("Starting Bitcoin Core tests runner")
+    logger.info(f"Configuration: {config.get_summary().replace(chr(10), ' | ')}")
+    if not config.quiet:
+        print()
+
+    if config.dry_run:
+        print_colored("[DRY RUN] Would execute the following operations:", Fore.YELLOW)
+        print_colored(f"  - Clone repository: {config.repository.url} (branch: {config.repository.branch})", Fore.WHITE)
+        print_colored(f"  - Build type: {config.build.type}", Fore.WHITE)
+        print_colored(f"  - Run tests with timeout: {config.test.timeout}s", Fore.WHITE)
+        print_colored("[DRY RUN] Exiting without executing operations", Fore.YELLOW)
+        logger.info("Dry run completed, exiting")
+        sys.exit(0)
 
     try:
         # Check prerequisites
         logger.debug("Checking prerequisites")
-        check_prerequisites(args.repo_url, args.branch)
+        check_prerequisites()
         logger.info("Prerequisites check completed successfully")
 
         # Build Docker image
@@ -284,18 +404,23 @@ def main() -> None:
         exit_code = run_tests()
         logger.info(f"Tests completed with exit code: {exit_code}")
 
-        # Cleanup
-        logger.debug("Cleaning up Docker containers")
-        cleanup_containers()
-        logger.info("Cleanup completed")
+        # Cleanup (unless configured to keep containers)
+        if not config.docker.keep_containers:
+            logger.debug("Cleaning up Docker containers")
+            cleanup_containers()
+            logger.info("Cleanup completed")
+        else:
+            logger.info("Keeping containers as requested")
 
         # Final status
         end_time = datetime.now()
-        print_colored(f"Completed at {end_time.strftime('%Y-%m-%d %H:%M:%S')}", Fore.WHITE)
+        if not config.quiet:
+            print_colored(f"Completed at {end_time.strftime('%Y-%m-%d %H:%M:%S')}", Fore.WHITE)
 
         # Calculate duration
         duration = end_time - start_time
-        print_colored(f"Duration: {duration}", Fore.WHITE)
+        if not config.quiet:
+            print_colored(f"Duration: {duration}", Fore.WHITE)
         logger.info(f"Total execution time: {duration}")
 
         if exit_code == 0:

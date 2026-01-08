@@ -30,6 +30,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+config = [
+    "python-dotenv>=0.19.0",
+]
 dev = [
     # Core Testing Packages
     "pytest>=7.0.0",
@@ -48,6 +51,9 @@ dev = [
     # Code Formatting
     "black>=22.0.0",
     "isort>=5.10.0",
+
+    # Configuration
+    "python-dotenv>=0.19.0",
 ]
 
 [project.scripts]
