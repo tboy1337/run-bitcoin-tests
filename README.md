@@ -1,6 +1,6 @@
 # Bitcoin Core C++ Unit Tests Runner
 
-A one-click Docker-based solution to run Bitcoin Core C++ unit tests on Windows, following the official [bitcoin/src/test/README.md](bitcoin/src/test/README.md) guidelines.
+A one-click Docker-based solution to run Bitcoin Core C++ unit tests.
 
 ## 🚀 Quick Start
 
