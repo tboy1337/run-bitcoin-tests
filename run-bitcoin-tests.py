@@ -28,6 +28,13 @@ Examples:
 """
 
 # Import and run the main function from the package
+import sys
+from pathlib import Path
+
+# Add src directory to Python path
+src_dir = Path(__file__).parent / "src"
+sys.path.insert(0, str(src_dir))
+
 from run_bitcoin_tests.main import main
 
 if __name__ == "__main__":

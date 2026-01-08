@@ -2,11 +2,36 @@
 Configuration management for the Bitcoin Core tests runner.
 
 This module provides a comprehensive configuration system supporting:
-- Environment variables
-- .env files
+- Environment variables with automatic type conversion
+- .env files (optional, requires python-dotenv)
 - Default values with type validation
 - Configuration precedence (CLI > env > .env > defaults)
 - Runtime configuration updates
+
+Configuration Sources (in order of precedence):
+1. Command line arguments (highest precedence)
+2. Environment variables (BTC_* prefixed)
+3. .env files (.env, .env.local, .env.production, etc.)
+4. Default values (lowest precedence)
+
+Environment Variables:
+- BTC_REPO_URL: Repository URL to clone
+- BTC_REPO_BRANCH: Branch to clone
+- BTC_BUILD_TYPE: CMake build type (Debug, Release, RelWithDebInfo, MinSizeRel)
+- BTC_BUILD_JOBS: Number of parallel build jobs
+- BTC_LOG_LEVEL: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- BTC_TEST_TIMEOUT: Test execution timeout in seconds
+- And many more...
+
+Example Usage:
+    from run_bitcoin_tests.config import load_config, get_config
+
+    # Load configuration from all sources
+    config = load_config(cli_args)
+
+    # Access configuration values
+    repo_url = config.repository.url
+    build_type = config.build.type
 """
 
 import os
@@ -14,6 +39,10 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
+
+from .logging_config import get_logger
+
+logger = get_logger(__name__)
 
 from .logging_config import get_logger
 
@@ -400,7 +429,25 @@ class ConfigManager:
 config_manager = ConfigManager()
 
 
-def load_config(args: Any = None) -> AppConfig:
+def load_config(args: Optional[Any] = None) -> AppConfig:
+    """
+    Load configuration from all sources with proper precedence.
+
+    This function loads configuration in the following order:
+    1. .env files (if available)
+    2. Environment variables
+    3. Command line arguments (if provided)
+    4. Validates the final configuration
+
+    Args:
+        args: Optional command line arguments from argparse
+
+    Returns:
+        AppConfig: Fully loaded and validated configuration
+
+    Raises:
+        ValueError: If configuration validation fails
+    """
     """
     Load configuration from all sources with proper precedence.
 
@@ -435,21 +482,44 @@ def load_config(args: Any = None) -> AppConfig:
 
 
 def get_config() -> AppConfig:
-    """Get the current configuration."""
+    """
+    Get the current application configuration.
+
+    Returns:
+        AppConfig: The current configuration instance
+    """
     return config_manager.config
 
 
 def update_config(updates: Dict[str, Any]) -> None:
-    """Update configuration at runtime."""
+    """
+    Update configuration values at runtime.
+
+    This function allows dynamic configuration updates after the initial load.
+    Only top-level configuration attributes can be updated this way.
+
+    Args:
+        updates: Dictionary of configuration key-value pairs to update
+
+    Example:
+        update_config({"repository": RepositoryConfig(url="https://new-repo.com")})
+    """
     for key, value in updates.items():
         if hasattr(config_manager.config, key):
             setattr(config_manager.config, key, value)
+            logger.debug(f"Updated configuration: {key}")
         else:
             logger.warning(f"Unknown configuration key: {key}")
 
 
 def reset_config() -> None:
-    """Reset configuration to defaults."""
+    """
+    Reset configuration to default values.
+
+    This function clears all loaded configuration and resets to the
+    built-in default values. Useful for testing or when a clean
+    configuration state is needed.
+    """
     config_manager.config = AppConfig()
     config_manager._env_cache.clear()
     config_manager._loaded_env_files.clear()

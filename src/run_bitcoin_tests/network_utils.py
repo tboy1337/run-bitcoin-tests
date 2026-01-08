@@ -8,6 +8,36 @@ This module provides enhanced network operations with proper error handling for:
 - Authentication issues
 - Repository access problems
 - Disk space and permission issues
+
+Key Features:
+- Automatic retry logic with exponential backoff
+- Network connectivity diagnostics
+- Detailed error categorization and user-friendly messages
+- Thread-safe operations
+- Configurable timeouts and retry policies
+
+Error Hierarchy:
+- NetworkError (base exception)
+  - ConnectionError: Network connectivity issues
+  - SSLError: SSL/TLS certificate validation failures
+  - AuthenticationError: Repository authentication failures
+  - RepositoryError: Repository access/permission issues
+  - DiskSpaceError: Insufficient disk space
+  - TimeoutError: Operation timeouts
+
+Example Usage:
+    from run_bitcoin_tests.network_utils import clone_bitcoin_repo_enhanced
+
+    try:
+        clone_bitcoin_repo_enhanced(
+            repo_url="https://github.com/bitcoin/bitcoin",
+            branch="master",
+            target_dir="bitcoin"
+        )
+    except ConnectionError as e:
+        print(f"Network connection failed: {e}")
+    except SSLError as e:
+        print(f"SSL certificate error: {e}")
 """
 
 import subprocess
@@ -72,6 +102,24 @@ class DiskSpaceError(NetworkError):
 
 
 def diagnose_network_connectivity(url: str) -> List[str]:
+    """
+    Diagnose network connectivity issues for a given URL.
+
+    Performs comprehensive network diagnostics including:
+    - Ping connectivity tests
+    - DNS resolution checks
+    - SSL/TLS connection validation (for HTTPS URLs)
+
+    Args:
+        url: The URL to test connectivity for
+
+    Returns:
+        List of diagnostic messages indicating connectivity status
+
+    Note:
+        Some diagnostic tests may not be available on all platforms
+        (e.g., ping command availability)
+    """
     """
     Diagnose network connectivity issues.
 
@@ -150,6 +198,34 @@ def run_git_command_with_retry(
     timeout: int = 300,
     retry_delay: int = 5
 ) -> subprocess.CompletedProcess[str]:
+    """
+    Run a Git command with automatic retry logic and error handling.
+
+    This function provides robust Git command execution with:
+    - Automatic retries for transient network errors
+    - Exponential backoff delay between retries
+    - Comprehensive error categorization
+    - User-friendly error messages
+
+    Args:
+        cmd: Git command arguments as a list
+        description: Human-readable description of the operation
+        max_retries: Maximum number of retry attempts (default: 3)
+        timeout: Command timeout in seconds (default: 300)
+        retry_delay: Base delay between retries in seconds (default: 5)
+
+    Returns:
+        subprocess.CompletedProcess object with execution results
+
+    Raises:
+        ConnectionError: For network connectivity issues
+        SSLError: For SSL certificate validation failures
+        AuthenticationError: For repository authentication failures
+        RepositoryError: For repository access issues
+        DiskSpaceError: For insufficient disk space
+        TimeoutError: For command execution timeouts
+        RuntimeError: For other command execution failures
+    """
     """
     Run a git command with retry logic and comprehensive error handling.
 
@@ -319,6 +395,36 @@ def _is_disk_space_error(error_msg: str) -> bool:
 
 
 def clone_bitcoin_repo_enhanced(repo_url: str, branch: str, target_dir: str = "bitcoin") -> None:
+    """
+    Enhanced Bitcoin repository cloning with comprehensive error handling.
+
+    This function provides robust repository cloning with:
+    - Automatic network diagnostics before cloning
+    - Thread-safe directory operations
+    - Comprehensive error handling and retry logic
+    - User-friendly progress messages and error reporting
+
+    Args:
+        repo_url: URL of the Git repository to clone
+        branch: Branch name to clone from the repository
+        target_dir: Local directory path for the cloned repository
+
+    Raises:
+        ConnectionError: For network connectivity issues
+        SSLError: For SSL certificate validation failures
+        AuthenticationError: For repository authentication failures
+        RepositoryError: For repository access/permission issues
+        DiskSpaceError: For insufficient disk space
+        TimeoutError: For operation timeouts
+        RuntimeError: For other cloning failures
+
+    Example:
+        clone_bitcoin_repo_enhanced(
+            "https://github.com/bitcoin/bitcoin",
+            "master",
+            "bitcoin-source"
+        )
+    """
     """
     Enhanced Bitcoin repository cloning with comprehensive error handling and thread safety.
 

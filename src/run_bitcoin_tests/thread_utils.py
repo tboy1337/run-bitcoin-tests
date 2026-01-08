@@ -6,6 +6,32 @@ This module provides thread-safe utilities for:
 - Resource cleanup with context managers
 - Atomic operations for shared state
 - Docker container management in concurrent environments
+- Temporary directory management
+- Resource tracking and automatic cleanup
+
+Key Components:
+- Thread-safe locks (RLock) for shared resources
+- Context managers for atomic operations
+- Resource trackers for automatic cleanup
+- Emergency cleanup handlers for graceful shutdown
+- Signal handling for clean termination
+
+Thread Safety Guarantees:
+- All file system operations are protected by locks
+- Docker operations are serialized to prevent conflicts
+- Shared state modifications are atomic
+- Resource cleanup is thread-safe and comprehensive
+
+Example Usage:
+    from run_bitcoin_tests.thread_utils import atomic_directory_operation
+
+    # Thread-safe directory creation
+    with atomic_directory_operation(Path("my_dir"), "create_dir"):
+        # Directory is guaranteed to exist here
+        pass
+
+    # Automatic cleanup on exit
+    initialize_thread_safety()
 """
 
 import atexit
@@ -35,8 +61,18 @@ _cleanup_handlers: List[callable] = []
 _thread_local = threading.local()
 
 
-def initialize_thread_safety():
-    """Initialize thread safety mechanisms."""
+def initialize_thread_safety() -> None:
+    """
+    Initialize thread safety mechanisms and cleanup handlers.
+
+    This function should be called early in the application lifecycle to:
+    - Register signal handlers for clean shutdown
+    - Set up atexit handlers for emergency cleanup
+    - Initialize global thread safety state
+
+    Note:
+        This function is idempotent and can be called multiple times safely.
+    """
     # Register cleanup handlers
     atexit.register(_emergency_cleanup)
 
@@ -131,10 +167,24 @@ def _force_remove_temp_dir(temp_dir: Path):
 @contextmanager
 def docker_container_lock(container_name: Optional[str] = None):
     """
-    Context manager for Docker container operations.
+    Context manager for thread-safe Docker container operations.
+
+    This context manager ensures that Docker operations are serialized
+    to prevent conflicts when multiple threads or processes might be
+    working with containers simultaneously.
 
     Args:
-        container_name: Optional container name to track
+        container_name: Optional container name to track for cleanup.
+                       If provided, the container will be tracked globally
+                       for emergency cleanup if needed.
+
+    Yields:
+        None (use as a context manager for synchronization only)
+
+    Example:
+        with docker_container_lock("my_container"):
+            # Docker operations here are thread-safe
+            run_docker_command(["docker", "build", "..."])
     """
     acquired_lock = _docker_lock.acquire(timeout=30.0)
     if not acquired_lock:
@@ -173,11 +223,30 @@ def file_system_lock(operation: str = "file_operation"):
 @contextmanager
 def atomic_directory_operation(directory: Path, operation: str = "directory_op"):
     """
-    Context manager for atomic directory operations.
+    Context manager for atomic directory operations with thread safety.
+
+    This function ensures that directory creation and operations are performed
+    atomically and thread-safely. If the directory doesn't exist, it will be
+    created. If it already exists, the operation proceeds normally.
 
     Args:
-        directory: Directory path to operate on
-        operation: Description of the operation
+        directory: Directory path to operate on. Parent directories will be
+                  created if they don't exist.
+        operation: Human-readable description of the operation for logging
+                  and error messages.
+
+    Yields:
+        Path: The directory path (guaranteed to exist within the context)
+
+    Raises:
+        OSError: If directory creation fails
+        TimeoutError: If the file system lock cannot be acquired
+
+    Example:
+        with atomic_directory_operation(Path("build"), "create_build_dir"):
+            # Directory ./build is guaranteed to exist here
+            # and was created thread-safely
+            pass
     """
     with file_system_lock(f"{operation} on {directory}"):
 
@@ -203,14 +272,25 @@ def atomic_directory_operation(directory: Path, operation: str = "directory_op")
 @contextmanager
 def thread_safe_temp_dir(prefix: str = "bitcoin_tests_", suffix: str = ""):
     """
-    Create a thread-safe temporary directory.
+    Create a thread-safe temporary directory with automatic cleanup.
+
+    This function creates a temporary directory that is guaranteed to be
+    unique and thread-safe. The directory is automatically cleaned up
+    when exiting the context manager, even if exceptions occur.
 
     Args:
-        prefix: Directory name prefix
-        suffix: Directory name suffix
+        prefix: Directory name prefix (default: "bitcoin_tests_")
+        suffix: Directory name suffix (default: "")
 
     Yields:
-        Path to the temporary directory
+        Path: Path to the temporary directory
+
+    Example:
+        with thread_safe_temp_dir("my_temp_") as temp_dir:
+            # Use temp_dir for temporary files
+            temp_file = temp_dir / "data.txt"
+            temp_file.write_text("temporary data")
+            # Directory is automatically cleaned up on exit
     """
     temp_dir = None
 
@@ -325,37 +405,84 @@ class ThreadSafeCounter:
 
 
 class ResourceTracker:
-    """Thread-safe resource tracker for monitoring system resources."""
+    """
+    Thread-safe resource tracker for monitoring and managing system resources.
 
-    def __init__(self):
+    This class provides a centralized way to track resources that need
+    cleanup or management across the application. Resources can be registered
+    with automatic cleanup capabilities.
+
+    All operations are thread-safe and can be called concurrently from
+    multiple threads.
+
+    Example:
+        tracker = ResourceTracker()
+        tracker.register_resource("my_file", open("file.txt", "w"))
+
+        # Later, cleanup all resources
+        tracker.cleanup_all_resources()
+    """
+
+    def __init__(self) -> None:
+        """Initialize the resource tracker."""
         self._resources: Dict[str, Any] = {}
         self._lock = threading.Lock()
 
-    def register_resource(self, name: str, resource: Any):
-        """Register a resource for tracking."""
+    def register_resource(self, name: str, resource: Any) -> None:
+        """
+        Register a resource for tracking and potential cleanup.
+
+        Args:
+            name: Unique identifier for the resource
+            resource: The resource object to track
+        """
         with self._lock:
             self._resources[name] = resource
             logger.debug(f"Registered resource: {name}")
 
-    def unregister_resource(self, name: str):
-        """Unregister a tracked resource."""
+    def unregister_resource(self, name: str) -> None:
+        """
+        Unregister a tracked resource.
+
+        Args:
+            name: Resource identifier to remove
+        """
         with self._lock:
             if name in self._resources:
                 del self._resources[name]
                 logger.debug(f"Unregistered resource: {name}")
 
     def get_resource(self, name: str) -> Optional[Any]:
-        """Get a tracked resource."""
+        """
+        Get a tracked resource by name.
+
+        Args:
+            name: Resource identifier to retrieve
+
+        Returns:
+            The resource object, or None if not found
+        """
         with self._lock:
             return self._resources.get(name)
 
     def list_resources(self) -> List[str]:
-        """List all tracked resource names."""
+        """
+        List all tracked resource names.
+
+        Returns:
+            List of resource identifier strings
+        """
         with self._lock:
             return list(self._resources.keys())
 
-    def cleanup_all_resources(self):
-        """Cleanup all tracked resources."""
+    def cleanup_all_resources(self) -> None:
+        """
+        Cleanup all tracked resources.
+
+        This method attempts to call cleanup() or close() methods on
+        tracked resources if they exist. Errors during cleanup are
+        logged but don't prevent other resources from being cleaned up.
+        """
         with self._lock:
             for name, resource in self._resources.items():
                 try:

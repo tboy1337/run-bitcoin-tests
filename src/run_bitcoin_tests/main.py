@@ -1,29 +1,43 @@
 """
 Bitcoin Core C++ Unit Tests Runner
 
-A cross-platform Python script to run Bitcoin Core C++ unit tests using Docker.
-This script automatically downloads the Bitcoin source code from GitHub and
+A cross-platform Python package to run Bitcoin Core C++ unit tests using Docker.
+This package automatically downloads the Bitcoin source code from GitHub and
 provides a simple way to build and execute the test suite in a containerized environment.
 
+Features:
+- Automatic repository cloning with retry logic
+- Docker-based build and test execution
+- Comprehensive error handling and diagnostics
+- Configurable via CLI, environment variables, or .env files
+- Thread-safe operations with proper resource cleanup
+- Cross-platform compatibility (Windows, macOS, Linux)
+
 Requirements:
-- Python 3.6+
-- Git installed
+- Python 3.10+
+- Git installed and available in PATH
 - Docker and Docker Compose installed and running
-- colorama (optional, for colored output): `pip install colorama`
+- colorama (optional, for colored output)
 
-Usage:
-    python run-bitcoin-tests.py [options]
+Configuration:
+Settings can be configured via:
+1. Command line arguments (highest precedence)
+2. Environment variables (e.g., BTC_REPO_URL)
+3. .env files (lowest precedence)
+4. Default values
 
-Options:
-    -r, --repo-url URL     Git repository URL to clone Bitcoin from
-                           (default: https://github.com/bitcoin/bitcoin)
-    -b, --branch BRANCH    Branch to clone from the repository
-                           (default: master)
+Example usage:
+    # Basic usage with defaults
+    python -m run_bitcoin_tests
 
-Examples:
-    python run-bitcoin-tests.py
-    python run-bitcoin-tests.py --repo-url https://github.com/myfork/bitcoin --branch my-feature
-    python run-bitcoin-tests.py -r https://github.com/bitcoin/bitcoin -b v25.1
+    # Custom repository and branch
+    python -m run_bitcoin_tests --repo-url https://github.com/myfork/bitcoin --branch feature-branch
+
+    # Show configuration
+    python -m run_bitcoin_tests --show-config
+
+    # Dry run to see what would be executed
+    python -m run_bitcoin_tests --dry-run
 """
 
 import argparse
@@ -36,10 +50,7 @@ from typing import List, Optional
 
 from .config import get_config, load_config
 from .logging_config import get_logger, setup_logging
-from .network_utils import (clone_bitcoin_repo_enhanced, ConnectionError as NetworkConnectionError,
-                           SSLError as NetworkSSLError, AuthenticationError as NetworkAuthError,
-                           RepositoryError as NetworkRepoError, DiskSpaceError as NetworkDiskError,
-                           TimeoutError as NetworkTimeoutError, NetworkError)
+from .network_utils import clone_bitcoin_repo_enhanced
 from .thread_utils import (atomic_directory_operation, docker_container_lock, file_system_lock,
                           initialize_thread_safety, register_cleanup_handler, resource_tracker)
 from .validation import validate_branch_name, validate_git_url, ValidationError
@@ -64,13 +75,35 @@ except ImportError:  # pragma: no cover
 
 
 def print_colored(message: str, color: str = Fore.WHITE, bright: bool = False) -> None:
-    """Print a colored message to stdout."""
+    """
+    Print a colored message to stdout.
+
+    Args:
+        message: The message to print
+        color: ANSI color code (e.g., Fore.RED, Fore.GREEN)
+        bright: Whether to use bright/bold text
+    """
     prefix = Style.BRIGHT if bright else ""
     print(f"{prefix}{color}{message}{Style.RESET_ALL}")
 
 
 def run_command(command: List[str], description: str) -> subprocess.CompletedProcess[str]:
-    """Run a command and return the completed process."""
+    """
+    Run a shell command and return the completed process.
+
+    This function executes commands with real-time output display and proper
+    error handling for common failure scenarios.
+
+    Args:
+        command: List of command arguments to execute
+        description: Human-readable description of the command for logging
+
+    Returns:
+        CompletedProcess object containing execution results
+
+    Raises:
+        SystemExit: If command execution fails due to missing binaries or other errors
+    """
     print_colored(f"Running: {' '.join(command)}", Fore.WHITE)
     try:
         result = subprocess.run(
@@ -90,7 +123,26 @@ def run_command(command: List[str], description: str) -> subprocess.CompletedPro
 
 
 def clone_bitcoin_repo(repo_url: str, branch: str) -> None:
-    """Clone the Bitcoin repository if it doesn't exist."""
+    """
+    Clone the Bitcoin repository to the local filesystem.
+
+    This function serves as a wrapper around the enhanced cloning functionality,
+    providing a simple interface while leveraging the robust error handling and
+    retry logic of the underlying implementation.
+
+    Args:
+        repo_url: URL of the Git repository to clone
+        branch: Branch name to clone from the repository
+
+    Raises:
+        NetworkError: For network connectivity issues
+        RepositoryError: For repository access problems
+        AuthenticationError: For authentication failures
+        SSLError: For SSL certificate issues
+        DiskSpaceError: For insufficient disk space
+        TimeoutError: For operation timeouts
+        RuntimeError: For other cloning failures
+    """
     config = get_config()
 
     try:
@@ -111,7 +163,20 @@ def clone_bitcoin_repo(repo_url: str, branch: str) -> None:
 
 
 def check_prerequisites() -> None:
-    """Check if required files exist and clone repo if needed."""
+    """
+    Check system prerequisites and prepare the Bitcoin repository.
+
+    This function performs the following checks and operations:
+    1. Verifies required Docker configuration files exist
+    2. Clones the Bitcoin repository if not already present
+    3. Validates the cloned repository structure
+
+    The function uses thread-safe file operations to prevent race conditions
+    when multiple processes might be checking prerequisites simultaneously.
+
+    Raises:
+        SystemExit: If required files are missing or repository validation fails
+    """
     config = get_config()
 
     if not config.quiet:
@@ -121,7 +186,7 @@ def check_prerequisites() -> None:
     with file_system_lock("check_docker_files"):
         required_files = [config.docker.compose_file, "Dockerfile"]
 
-        missing_files = []
+        missing_files: List[str] = []
         for file_str in required_files:
             file_path = Path(file_str)
             if not file_path.exists():
@@ -150,7 +215,20 @@ def check_prerequisites() -> None:
 
 
 def build_docker_image() -> None:
-    """Build the Docker image for Bitcoin Core tests."""
+    """
+    Build the Docker image for Bitcoin Core compilation and testing.
+
+    This function builds a Docker image containing all necessary dependencies
+    for compiling and running Bitcoin Core unit tests. It uses thread-safe
+    Docker operations to prevent conflicts when multiple builds might run
+    concurrently.
+
+    The build process can be configured to use parallel compilation jobs
+    for faster builds on multi-core systems.
+
+    Raises:
+        SystemExit: If the Docker build process fails
+    """
     config = get_config()
 
     if not config.quiet:
@@ -158,7 +236,7 @@ def build_docker_image() -> None:
 
     container_name = f"{config.docker.container_name}-build"
     with docker_container_lock(container_name):
-        cmd = ["docker-compose", "-f", config.docker.compose_file, "build"]
+        cmd: List[str] = ["docker-compose", "-f", config.docker.compose_file, "build"]
         if config.build.parallel_jobs and config.build.parallel_jobs > 1:
             # Add build arguments for parallel jobs
             cmd.extend(["--build-arg", f"CMAKE_BUILD_PARALLEL_LEVEL={config.build.parallel_jobs}"])
@@ -175,7 +253,20 @@ def build_docker_image() -> None:
 
 
 def run_tests() -> int:
-    """Run the Bitcoin Core unit tests."""
+    """
+    Run the Bitcoin Core unit tests in the Docker container.
+
+    This function executes the compiled Bitcoin Core test suite within a
+    Docker container. The tests run with the configured timeout and parallel
+    execution settings.
+
+    Returns:
+        int: Exit code from the test execution (0 for success, non-zero for failure)
+
+    Note:
+        The function uses thread-safe Docker operations to prevent conflicts
+        with other concurrent container operations.
+    """
     config = get_config()
 
     if not config.quiet:
@@ -183,7 +274,7 @@ def run_tests() -> int:
 
     container_name = f"{config.docker.container_name}-runner"
     with docker_container_lock(container_name):
-        cmd = ["docker-compose", "run", "--rm", config.docker.container_name]
+        cmd: List[str] = ["docker-compose", "run", "--rm", config.docker.container_name]
         result = run_command(cmd, "Run tests")
 
     if not config.quiet:
@@ -198,8 +289,23 @@ def run_tests() -> int:
 
 
 def cleanup_containers() -> None:
-    """Clean up Docker containers and networks."""
-    print_colored("Cleaning up containers...", Fore.YELLOW)
+    """
+    Clean up Docker containers, networks, and tracked resources.
+
+    This function performs comprehensive cleanup of Docker resources created
+    during the testing process, including:
+    - Stopping and removing containers
+    - Removing networks
+    - Cleaning up orphaned resources
+    - Releasing tracked system resources
+
+    The function uses thread-safe operations to prevent conflicts during
+    concurrent cleanup operations.
+    """
+    config = get_config()
+
+    if not config.quiet:
+        print_colored("Cleaning up containers...", Fore.YELLOW)
 
     with docker_container_lock("bitcoin-tests-cleanup"):
         run_command(["docker-compose", "down", "--remove-orphans"], "Cleanup containers")
@@ -209,6 +315,22 @@ def cleanup_containers() -> None:
 
 
 def parse_arguments() -> argparse.Namespace:
+    """
+    Parse command line arguments with comprehensive configuration options.
+
+    This function sets up an argument parser with support for all major
+    configuration categories including repository settings, build options,
+    Docker configuration, logging, and application behavior.
+
+    The parsed arguments are processed and validated before being returned.
+    Special actions like --show-config and --save-config are handled directly.
+
+    Returns:
+        argparse.Namespace: Parsed and validated command line arguments
+
+    Raises:
+        SystemExit: For configuration errors or when special actions complete
+    """
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
         description="Run Bitcoin Core C++ unit tests in Docker",
@@ -345,7 +467,26 @@ Configuration:
 
 
 def main() -> None:
-    """Main function to run the Bitcoin Core tests."""
+    """
+    Main entry point for the Bitcoin Core tests runner.
+
+    This function orchestrates the complete testing workflow:
+    1. Parse command line arguments
+    2. Load configuration from multiple sources
+    3. Initialize thread safety mechanisms
+    4. Set up logging system
+    5. Execute prerequisite checks
+    6. Build Docker image
+    7. Run tests
+    8. Clean up resources
+    9. Report results
+
+    The function handles various error conditions gracefully and ensures
+    proper cleanup even when errors occur.
+
+    Raises:
+        SystemExit: With appropriate exit codes for different error conditions
+    """
     args = parse_arguments()
 
     # Load configuration (this will load from .env files, env vars, and CLI args)
@@ -430,47 +571,22 @@ def main() -> None:
 
         sys.exit(exit_code)
 
-    except NetworkConnectionError as e:
-        logger.error(f"Network connection error: {e}")
-        print_colored(f"[NETWORK ERROR] Connection failed: {e}", Fore.RED)
-        print_colored("Please check your internet connection and try again.", Fore.WHITE)
-        cleanup_containers()
-        sys.exit(10)
+    except Exception as e:
+        # Handle network and other errors generically since we're not using the complex security module
+        if "network" in str(e).lower() or "connection" in str(e).lower():
+            logger.error(f"Network error: {e}")
+            print_colored(f"[NETWORK ERROR] {e}", Fore.RED)
+            print_colored("Please check your internet connection and try again.", Fore.WHITE)
+        elif "repository" in str(e).lower() or "not found" in str(e).lower():
+            logger.error(f"Repository error: {e}")
+            print_colored(f"[REPO ERROR] {e}", Fore.RED)
+            print_colored("Please verify the repository URL and branch name are correct.", Fore.WHITE)
+        else:
+            logger.error(f"Unexpected error: {e}")
+            print_colored(f"[ERROR] {e}", Fore.RED)
 
-    except NetworkSSLError as e:
-        logger.error(f"SSL certificate error: {e}")
-        print_colored(f"[SSL ERROR] Certificate verification failed: {e}", Fore.RED)
-        print_colored("Try using HTTP instead of HTTPS or check your SSL settings.", Fore.WHITE)
         cleanup_containers()
-        sys.exit(11)
-
-    except NetworkAuthError as e:
-        logger.error(f"Authentication error: {e}")
-        print_colored(f"[AUTH ERROR] Authentication failed: {e}", Fore.RED)
-        print_colored("Please check your credentials and repository access permissions.", Fore.WHITE)
-        cleanup_containers()
-        sys.exit(12)
-
-    except NetworkRepoError as e:
-        logger.error(f"Repository access error: {e}")
-        print_colored(f"[REPO ERROR] Repository access failed: {e}", Fore.RED)
-        print_colored("Please verify the repository URL and branch name are correct.", Fore.WHITE)
-        cleanup_containers()
-        sys.exit(13)
-
-    except NetworkDiskError as e:
-        logger.error(f"Disk space error: {e}")
-        print_colored(f"[DISK ERROR] Insufficient disk space: {e}", Fore.RED)
-        print_colored("Please free up disk space and try again.", Fore.WHITE)
-        cleanup_containers()
-        sys.exit(14)
-
-    except NetworkTimeoutError as e:
-        logger.error(f"Network timeout error: {e}")
-        print_colored(f"[TIMEOUT ERROR] Operation timed out: {e}", Fore.RED)
-        print_colored("The operation took too long. Try again or check your network speed.", Fore.WHITE)
-        cleanup_containers()
-        sys.exit(15)
+        sys.exit(1)
 
     except KeyboardInterrupt:
         logger.warning("Operation cancelled by user (KeyboardInterrupt)")

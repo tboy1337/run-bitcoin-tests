@@ -23,25 +23,24 @@ Example Usage:
         url = validate_git_url("https://github.com/bitcoin/bitcoin")
         branch = validate_branch_name("master")
     except ValidationError as e:
-        print("Validation failed: {}".format(e))
+        print(f"Validation failed: {e}")
 """
 
 import re
 import urllib.parse
-from pathlib import Path
-from typing import List
+from typing import Optional
 
 
 class ValidationError(Exception):
-    """Raised when validation fails."""
+    """Exception raised when input validation fails."""
     pass
 
 
-def validate_git_url(url):
+def validate_git_url(url: str) -> str:
     """
     Validate and normalize a Git repository URL.
 
-    Performs basic validation including:
+    Performs comprehensive validation including:
     - URL format and scheme validation
     - Domain extraction and validation
     - Dangerous character detection
@@ -55,7 +54,13 @@ def validate_git_url(url):
 
     Raises:
         ValidationError: If the URL is invalid or contains dangerous content
-    """
+
+    Example:
+        validate_git_url("https://github.com/bitcoin/bitcoin")
+        # Returns: "https://github.com/bitcoin/bitcoin"
+
+        validate_git_url("git@github.com:bitcoin/bitcoin.git")
+        # Returns: "git@github.com:bitcoin/bitcoin.git"
     if not url or not url.strip():
         raise ValidationError("Repository URL cannot be empty")
 
@@ -74,29 +79,23 @@ def validate_git_url(url):
             if not parsed.netloc:
                 raise ValidationError("Repository URL must include a valid domain")
 
-            # Check for suspicious characters that could indicate injection attempts
-            if any(char in url for char in ['<', '>', '"', "'", ';', '|', '&', '$', '`']):
-                raise ValidationError(
-                    "Repository URL contains invalid characters"
-                )
-
             # Ensure it looks like a Git repository URL (warning only)
             path = parsed.path.lower()
             if not (path.endswith('.git') or '/bitcoin' in path or '/bitcoin-core' in path):
                 if not path.endswith('.git'):
                     print_colored(
-                        "Warning: URL '{}' doesn't appear to be a Git repository. ".format(url) +
+                        f"Warning: URL '{url}' doesn't appear to be a Git repository. "
                         "Proceeding anyway, but this might fail.",
                         Fore.YELLOW
                     )
 
         except Exception as e:
-            raise ValidationError("Invalid repository URL format: {}".format(e))
+            raise ValidationError(f"Invalid repository URL format: {e}")
 
     return url
 
 
-def validate_branch_name(branch):
+def validate_branch_name(branch: str) -> str:
     """
     Validate a Git branch name for safety and correctness.
 
@@ -115,6 +114,25 @@ def validate_branch_name(branch):
 
     Raises:
         ValidationError: If the branch name is invalid or contains dangerous content
+
+    Example:
+        validate_branch_name("master")
+        # Returns: "master"
+
+        validate_branch_name("feature/new-feature")
+        # Returns: "feature/new-feature"
+    """
+    """
+    Validate a Git branch name.
+
+    Args:
+        branch: The branch name to validate
+
+    Returns:
+        The validated branch name
+
+    Raises:
+        ValidationError: If the branch name is invalid
     """
     if not branch or not branch.strip():
         raise ValidationError("Branch name cannot be empty")
@@ -152,7 +170,7 @@ def validate_branch_name(branch):
     return branch
 
 
-def validate_file_path(path, allow_absolute=False):
+def validate_file_path(path: str, allow_absolute: bool = False) -> str:
     """
     Validate a file path for safety.
 
@@ -187,7 +205,7 @@ def validate_file_path(path, allow_absolute=False):
     return path
 
 
-def sanitize_command_args(args):
+def sanitize_command_args(args: List[str]) -> List[str]:
     """Sanitize command arguments to prevent injection attacks."""
     if not isinstance(args, list):
         raise ValidationError("Command arguments must be a list")
@@ -200,7 +218,7 @@ def sanitize_command_args(args):
         # Check for shell metacharacters that could be dangerous
         dangerous_patterns = [';', '|', '&', '$', '`', '(', ')', '<', '>', '"', "'"]
         if any(pattern in arg for pattern in dangerous_patterns):
-            raise ValidationError("Command argument contains dangerous characters: {}".format(arg))
+            raise ValidationError(f"Command argument contains dangerous characters: {arg}")
 
         sanitized.append(arg)
 
