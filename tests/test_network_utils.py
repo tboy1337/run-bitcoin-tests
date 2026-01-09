@@ -45,8 +45,8 @@ class TestDiagnoseNetworkConnectivity:
         diagnostics = diagnose_network_connectivity("https://github.com/bitcoin/bitcoin")
 
         assert len(diagnostics) >= 2
-        assert any("connectivity" in diag and "working" in diag for diag in diagnostics)
-        assert any("DNS resolution" in diag and "working" in diag for diag in diagnostics)
+        assert any("connectivity" in diag and "[OK]" in diag for diag in diagnostics)
+        assert any("DNS resolution" in diag and "[OK]" in diag for diag in diagnostics)
 
     @patch("socket.gethostbyname")
     @patch("subprocess.run")
@@ -239,7 +239,7 @@ class TestCloneBitcoinRepoEnhanced:
     @patch("run_bitcoin_tests.network_utils.diagnose_network_connectivity")
     def test_clone_with_connection_error(self, mock_diagnose, mock_run_git):
         """Test clone with connection error."""
-        mock_diagnose.return_value = ["✗ Cannot reach host"]
+        mock_diagnose.return_value = ["[FAIL] Cannot reach host"]
         mock_run_git.side_effect = ConnectionError("Network connection failed")
 
         with patch("pathlib.Path.exists", return_value=False):
@@ -250,7 +250,7 @@ class TestCloneBitcoinRepoEnhanced:
     @patch("run_bitcoin_tests.network_utils.diagnose_network_connectivity")
     def test_clone_with_ssl_error(self, mock_diagnose, mock_run_git):
         """Test clone with SSL error."""
-        mock_diagnose.return_value = ["✓ Network connectivity working"]
+        mock_diagnose.return_value = ["[OK] Network connectivity working"]
         mock_run_git.side_effect = SSLError("SSL certificate verification failed")
 
         with patch("pathlib.Path.exists", return_value=False):

@@ -268,9 +268,8 @@ def build_docker_image() -> None:
             # Add build arguments for parallel jobs
             cmd.extend(["--build-arg", f"CMAKE_BUILD_PARALLEL_LEVEL={config.build.parallel_jobs}"])
 
-        # Use Docker build cache for faster rebuilds
-        cmd.append("--no-cache-filter")
-        cmd.append("bitcoin-deps")  # Only rebuild deps layer if needed
+        # Add the service name to build
+        cmd.append(config.docker.container_name)
 
         # Enable buildkit for better caching and performance
         import os
@@ -323,14 +322,7 @@ def run_tests() -> int:
 
         cmd: List[str] = docker_compose_cmd + ["run", "--rm"]
 
-        # Performance optimizations
-        if config.test.parallel and config.test.parallel_jobs:
-            # Use more CPU resources for parallel test execution
-            cmd.extend(["--cpus", str(min(config.test.parallel_jobs, 4))])  # Limit to 4 CPUs max
-
-        # Add memory limits for better resource management
-        cmd.extend(["--memory", "4g", "--memory-swap", "8g"])
-
+        # Add the service name to run
         cmd.append(config.docker.container_name)
         result = run_command(cmd, "Run tests")
 

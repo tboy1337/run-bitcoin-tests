@@ -415,22 +415,22 @@ def diagnose_network_connectivity(url: str) -> List[str]:
             )
 
             if result.returncode == 0:
-                diagnostics.append(f"✓ Network connectivity to {host} is working")
+                diagnostics.append(f"[OK] Network connectivity to {host} is working")
             else:
-                diagnostics.append(f"✗ Cannot reach {host} - network connectivity issue")
+                diagnostics.append(f"[FAIL] Cannot reach {host} - network connectivity issue")
 
         except subprocess.TimeoutExpired:
-            diagnostics.append(f"✗ Ping to {host} timed out")
+            diagnostics.append(f"[TIMEOUT] Ping to {host} timed out")
         except FileNotFoundError:
-            diagnostics.append("! Ping command not available for connectivity testing")
+            diagnostics.append("[WARN] Ping command not available for connectivity testing")
 
         # Test DNS resolution
         try:
             import socket
             socket.gethostbyname(host)
-            diagnostics.append(f"✓ DNS resolution for {host} is working")
+            diagnostics.append(f"[OK] DNS resolution for {host} is working")
         except socket.gaierror:
-            diagnostics.append(f"✗ DNS resolution failed for {host}")
+            diagnostics.append(f"[FAIL] DNS resolution failed for {host}")
 
         # Test SSL connectivity if HTTPS
         if url.startswith('https://'):
@@ -441,14 +441,14 @@ def diagnose_network_connectivity(url: str) -> List[str]:
                 context = ssl.create_default_context()
                 with socket.create_connection((host, 443), timeout=10) as sock:
                     with context.wrap_socket(sock, server_hostname=host) as ssock:
-                        diagnostics.append(f"✓ SSL/TLS connection to {host} is working")
+                        diagnostics.append(f"[OK] SSL/TLS connection to {host} is working")
             except ssl.SSLCertVerificationError:
-                diagnostics.append(f"✗ SSL certificate verification failed for {host}")
+                diagnostics.append(f"[FAIL] SSL certificate verification failed for {host}")
             except Exception as e:
-                diagnostics.append(f"✗ SSL connection failed for {host}: {e}")
+                diagnostics.append(f"[FAIL] SSL connection failed for {host}: {e}")
 
     except Exception as e:
-        diagnostics.append(f"! Could not complete network diagnostics: {e}")
+        diagnostics.append(f"[ERROR] Could not complete network diagnostics: {e}")
 
     return diagnostics
 
