@@ -18,11 +18,9 @@ Classes:
     ParallelExecutor: Execute operations in parallel where beneficial
 """
 
-import gc
 import logging
 import multiprocessing
 import os
-import platform
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -77,7 +75,7 @@ class PerformanceMonitor:
             metrics = self._metrics.copy()
             self._metrics.clear()
 
-        logger.debug(f"Performance monitoring stopped, collected {len(metrics)} metrics")
+        logger.debug("Performance monitoring stopped, collected %s metrics", len(metrics))
         return metrics
 
     def _monitor_loop(self) -> None:
@@ -87,8 +85,8 @@ class PerformanceMonitor:
                 metrics = self._collect_metrics()
                 with self._lock:
                     self._metrics.append(metrics)
-            except Exception as e:
-                logger.warning(f"Failed to collect performance metrics: {e}")
+            except Exception as exc:
+                logger.warning("Failed to collect performance metrics: %s", exc)
 
             time.sleep(self.interval)
 
@@ -113,9 +111,9 @@ class PerformanceMonitor:
                 "network_bytes_recv": network.bytes_recv if network else 0,
                 "load_average": os.getloadavg() if hasattr(os, "getloadavg") else None,
             }
-        except Exception as e:
-            logger.warning(f"Error collecting metrics: {e}")
-            return {"timestamp": time.time(), "error": str(e)}
+        except Exception as exc:
+            logger.warning("Error collecting metrics: %s", exc)
+            return {"timestamp": time.time(), "error": str(exc)}
 
 
 class ResourceOptimizer:
@@ -158,21 +156,21 @@ class ResourceOptimizer:
     def optimize_process_priority() -> None:
         """Optimize current process priority for better performance."""
         try:
-            import platform
+            import platform  # pylint: disable=import-outside-toplevel,reimported
 
             if platform.system() == "Windows":
                 # On Windows, we can't easily change priority from user process
                 pass
             else:
                 # On Unix-like systems, try to set nice level
-                os.nice(-5)  # Slightly higher priority
+                os.nice(-5)  # Slightly higher priority  # pylint: disable=no-member
         except Exception:
             pass  # Ignore if we can't set priority
 
     @staticmethod
     def cleanup_memory() -> None:
         """Force garbage collection to free memory."""
-        import gc
+        import gc  # pylint: disable=import-outside-toplevel,reimported
 
         gc.collect()
 
@@ -180,6 +178,8 @@ class ResourceOptimizer:
     def get_system_info() -> Dict[str, Any]:
         """Get comprehensive system information for optimization decisions."""
         try:
+            import platform  # pylint: disable=import-outside-toplevel,reimported
+
             return {
                 "cpu_count": multiprocessing.cpu_count(),
                 "cpu_freq": psutil.cpu_freq().current if psutil.cpu_freq() else None,
@@ -190,8 +190,8 @@ class ResourceOptimizer:
                 "platform": platform.platform(),
                 "python_version": platform.python_version(),
             }
-        except Exception as e:
-            logger.warning(f"Failed to get system info: {e}")
+        except Exception as exc:
+            logger.warning("Failed to get system info: %s", exc)
             return {}
 
 
@@ -249,8 +249,8 @@ class ParallelExecutor:
             try:
                 result = future.result()
                 results.append(result)
-            except Exception as e:
-                logger.error(f"Task execution failed: {e}")
+            except Exception as exc:
+                logger.error("Task execution failed: %s", exc)
                 results.append(None)  # Or raise exception based on requirements
 
         return results
@@ -276,15 +276,15 @@ class ParallelExecutor:
             try:
                 result = future.result()
                 results.append(result)
-            except Exception as e:
-                logger.error(f"Parallel map task failed: {e}")
+            except Exception as exc:
+                logger.error("Parallel map task failed: %s", exc)
                 results.append(None)
 
         return results
 
 
-# Global instances
-_performance_monitor = None
+# Global instances (module-level singleton)
+_performance_monitor = None  # pylint: disable=invalid-name
 _monitor_lock = threading.Lock()
 
 
@@ -298,7 +298,7 @@ def get_performance_monitor(interval: float = 1.0) -> PerformanceMonitor:
     Returns:
         PerformanceMonitor instance
     """
-    global _performance_monitor
+    global _performance_monitor  # pylint: disable=global-statement
 
     if _performance_monitor is None:
         with _monitor_lock:
@@ -325,12 +325,13 @@ def optimize_system_resources() -> None:
         # Log system information
         system_info = ResourceOptimizer.get_system_info()
         logger.info(
-            f"System optimization applied. CPU cores: {system_info.get('cpu_count', 'unknown')}, "
-            f"Memory: {system_info.get('memory_total_gb', 'unknown'):.1f}GB"
+            "System optimization applied. CPU cores: %s, Memory: %.1fGB",
+            system_info.get("cpu_count", "unknown"),
+            system_info.get("memory_total_gb", 0.0),
         )
 
-    except Exception as e:
-        logger.warning(f"System optimization failed: {e}")
+    except Exception as exc:
+        logger.warning("System optimization failed: %s", exc)
 
 
 def with_performance_monitoring(func: Callable) -> Callable:
@@ -354,12 +355,15 @@ def with_performance_monitoring(func: Callable) -> Callable:
         finally:
             metrics = monitor.stop_monitoring()
             if metrics:
-                avg_cpu = sum(m["cpu_percent"] for m in metrics if "cpu_percent" in m) / len(
-                    metrics
-                )
-                avg_memory = sum(
-                    m["memory_percent"] for m in metrics if "memory_percent" in m
-                ) / len(metrics)
-                logger.info(".2f")
+                cpu_metrics = [m["cpu_percent"] for m in metrics if "cpu_percent" in m]
+                memory_metrics = [m["memory_percent"] for m in metrics if "memory_percent" in m]
+                if cpu_metrics and memory_metrics:
+                    avg_cpu = sum(cpu_metrics) / len(cpu_metrics)
+                    avg_memory = sum(memory_metrics) / len(memory_metrics)
+                    logger.info(
+                        "Performance: CPU=%.2f%% Memory=%.2f%%",
+                        avg_cpu,
+                        avg_memory,
+                    )
 
     return wrapper

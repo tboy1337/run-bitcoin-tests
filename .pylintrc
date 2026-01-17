@@ -3,6 +3,7 @@ disable=
     C0114,  # missing-module-docstring
     C0115,  # missing-class-docstring
     C0116,  # missing-function-docstring
+    R0401,  # cyclic-import (some circular imports are intentional for type hints)
     R0903,  # too-few-public-methods
     R0912,  # too-many-branches
     R0915,  # too-many-statements
@@ -11,7 +12,7 @@ disable=
 
 [FORMAT]
 max-line-length=100
-good-names=i,j,k,ex,Run,_,db,session,request,response,logger
+good-names=i,j,k,ex,exc,Run,_,db,session,request,response,logger,fd,fp,ws,td,cmd,url
 
 [MESSAGES CONTROL]
 extension-pkg-whitelist=PyQt5,PyQt6,PySide2,PySide6
@@ -42,13 +43,13 @@ module-rgx=(([a-z_][a-z0-9_]*)|([A-Z][a-zA-Z0-9]+))$
 no-docstring-rgx=__.*__
 
 [DESIGN]
-max-args=5
+max-args=7
 max-locals=15
 max-returns=6
 max-branches=12
 max-statements=50
 max-parents=7
-max-attributes=7
+max-attributes=14
 min-public-methods=2
 max-public-methods=20
 

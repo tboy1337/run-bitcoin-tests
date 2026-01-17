@@ -7,6 +7,7 @@ log levels, formatting, and output destinations for different environments.
 
 import logging
 import logging.handlers
+import re
 import sys
 from pathlib import Path
 from typing import Optional
@@ -36,12 +37,12 @@ def setup_logging(
         log_level = getattr(logging, level.upper(), logging.INFO)
 
     # Create logger
-    logger = logging.getLogger("bitcoin_tests")
-    logger.setLevel(log_level)
+    app_logger = logging.getLogger("bitcoin_tests")
+    app_logger.setLevel(log_level)
 
     # Remove existing handlers to avoid duplicates
-    for handler in logger.handlers[:]:
-        logger.removeHandler(handler)
+    for handler in app_logger.handlers[:]:
+        app_logger.removeHandler(handler)
 
     # Create formatter
     if verbose:
@@ -60,14 +61,12 @@ def setup_logging(
     class ColorFilter(logging.Filter):
         def filter(self, record):
             # Remove ANSI escape sequences from log messages
-            import re
-
             if hasattr(record, "msg") and isinstance(record.msg, str):
                 record.msg = re.sub(r"\x1b\[[0-9;]*m", "", record.msg)
             return True
 
     console_handler.addFilter(ColorFilter())
-    logger.addHandler(console_handler)
+    app_logger.addHandler(console_handler)
 
     # File handler (if specified)
     if log_file:
@@ -78,22 +77,23 @@ def setup_logging(
 
             # Use rotating file handler to prevent log files from growing too large
             file_handler = logging.handlers.RotatingFileHandler(
-                log_file, maxBytes=10 * 1024 * 1024, backupCount=5  # 10MB
+                log_file, maxBytes=10 * 1024 * 1024, backupCount=5, encoding="utf-8"  # 10MB
             )
             file_handler.setLevel(logging.DEBUG)  # Always log debug to file
             file_handler.setFormatter(formatter)
-            logger.addHandler(file_handler)
+            app_logger.addHandler(file_handler)
 
-            logger.info(f"Logging to file: {log_file}")
-        except Exception as e:
-            logger.warning(f"Could not set up file logging: {e}")
+            app_logger.info("Logging to file: %s", log_file)
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            app_logger.warning("Could not set up file logging: %s", exc)
 
     # Log the startup
-    logger.info(
-        f"Bitcoin Core Tests Runner started with log level: {logging.getLevelName(log_level)}"
+    app_logger.info(
+        "Bitcoin Core Tests Runner started with log level: %s",
+        logging.getLevelName(log_level),
     )
 
-    return logger
+    return app_logger
 
 
 def get_logger(name: str = "bitcoin_tests") -> logging.Logger:

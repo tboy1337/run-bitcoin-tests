@@ -24,10 +24,10 @@ import platform
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union
 
 
-class PlatformInfo:
+class PlatformInfo:  # pylint: disable=too-many-instance-attributes
     """
     Information about the current platform and its capabilities.
 
@@ -82,7 +82,7 @@ class PlatformInfo:
         if self.is_windows:
             # Check if we're running in a Unicode-capable terminal
             try:
-                import ctypes
+                import ctypes  # pylint: disable=import-outside-toplevel
 
                 kernel32 = ctypes.windll.kernel32
                 return bool(kernel32.GetConsoleOutputCP())
@@ -95,8 +95,7 @@ class PlatformInfo:
         # Use pathlib for cross-platform temp directory
         if self.is_windows:
             return Path(os.environ.get("TEMP", "C:\\Temp"))
-        else:
-            return Path("/tmp")
+        return Path("/tmp")
 
     def get_home_directory(self) -> Path:
         """Get the user's home directory in a cross-platform way."""
@@ -109,18 +108,15 @@ class PlatformInfo:
             local_appdata = os.environ.get("LOCALAPPDATA")
             if local_appdata:
                 return Path(local_appdata) / "bitcoin-tests"
-            else:
-                return self.get_home_directory() / "AppData" / "Local" / "bitcoin-tests"
-        elif self.is_macos:
+            return self.get_home_directory() / "AppData" / "Local" / "bitcoin-tests"
+        if self.is_macos:
             # macOS: ~/Library/Caches/bitcoin-tests
             return self.get_home_directory() / "Library" / "Caches" / "bitcoin-tests"
-        else:
-            # Linux/Unix: ~/.cache/bitcoin-tests or XDG_CACHE_HOME
-            cache_home = os.environ.get("XDG_CACHE_HOME")
-            if cache_home:
-                return Path(cache_home) / "bitcoin-tests"
-            else:
-                return self.get_home_directory() / ".cache" / "bitcoin-tests"
+        # Linux/Unix: ~/.cache/bitcoin-tests or XDG_CACHE_HOME
+        cache_home = os.environ.get("XDG_CACHE_HOME")
+        if cache_home:
+            return Path(cache_home) / "bitcoin-tests"
+        return self.get_home_directory() / ".cache" / "bitcoin-tests"
 
 
 class CrossPlatformCommand:
@@ -162,12 +158,12 @@ class CrossPlatformCommand:
         if self._check_command_exists(["docker", "compose", "version"]):
             return ["docker", "compose"]
         # Fall back to 'docker-compose'
-        elif self._check_command_exists(["docker-compose", "version"]):
+        if self._check_command_exists(["docker-compose", "version"]):
             return ["docker-compose"]
-        else:
-            raise FileNotFoundError("Neither 'docker compose' nor 'docker-compose' found")
+        raise FileNotFoundError("Neither 'docker compose' nor 'docker-compose' found")
 
-    def _check_command_exists(self, command: List[str]) -> bool:
+    @staticmethod
+    def _check_command_exists(command: List[str]) -> bool:
         """Check if a command exists and is executable."""
         try:
             result = subprocess.run(command, capture_output=True, timeout=10, check=False)
@@ -202,8 +198,7 @@ class CrossPlatformCommand:
                 else:
                     normalized.append(arg)
             return normalized
-        else:
-            return args
+        return args
 
 
 class PathUtils:
@@ -302,15 +297,15 @@ class PathUtils:
             return self.normalize_path(path)
 
 
-# Global instances
-_platform_info = None
-_cross_platform_command = None
-_path_utils = None
+# Global instances (module-level singletons)
+_platform_info = None  # pylint: disable=invalid-name
+_cross_platform_command = None  # pylint: disable=invalid-name
+_path_utils = None  # pylint: disable=invalid-name
 
 
 def get_platform_info() -> PlatformInfo:
     """Get the global platform info instance."""
-    global _platform_info
+    global _platform_info  # pylint: disable=global-statement
     if _platform_info is None:
         _platform_info = PlatformInfo()
     return _platform_info
@@ -318,7 +313,7 @@ def get_platform_info() -> PlatformInfo:
 
 def get_cross_platform_command() -> CrossPlatformCommand:
     """Get the global cross-platform command instance."""
-    global _cross_platform_command
+    global _cross_platform_command  # pylint: disable=global-statement
     if _cross_platform_command is None:
         _cross_platform_command = CrossPlatformCommand()
     return _cross_platform_command
@@ -326,7 +321,7 @@ def get_cross_platform_command() -> CrossPlatformCommand:
 
 def get_path_utils() -> PathUtils:
     """Get the global path utils instance."""
-    global _path_utils
+    global _path_utils  # pylint: disable=global-statement
     if _path_utils is None:
         _path_utils = PathUtils()
     return _path_utils

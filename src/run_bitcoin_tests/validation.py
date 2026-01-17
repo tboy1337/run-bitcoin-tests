@@ -28,14 +28,10 @@ Example Usage:
 
 import re
 import urllib.parse
-from pathlib import Path
-from typing import List
 
 
 class ValidationError(Exception):
     """Raised when validation fails."""
-
-    pass
 
 
 def validate_git_url(url):
@@ -82,13 +78,13 @@ def validate_git_url(url):
             if not (path.endswith(".git") or "/bitcoin" in path or "/bitcoin-core" in path):
                 if not path.endswith(".git"):
                     print_colored(
-                        "Warning: URL '{}' doesn't appear to be a Git repository. ".format(url)
+                        f"Warning: URL '{url}' doesn't appear to be a Git repository. "
                         + "Proceeding anyway, but this might fail.",
                         Fore.YELLOW,
                     )
 
-        except Exception as e:
-            raise ValidationError("Invalid repository URL format: {}".format(e))
+        except Exception as exc:
+            raise ValidationError(f"Invalid repository URL format: {exc}") from exc
 
     return url
 
@@ -125,10 +121,8 @@ def validate_branch_name(branch):
     # Check for dangerous characters that could be used for command injection
     dangerous_chars = ["<", ">", '"', "'", ";", "|", "&", "$", "`", "\n", "\r", "\t"]
     if any(char in branch for char in dangerous_chars):
-        raise ValidationError(
-            "Branch name contains invalid characters: "
-            + "".join(set(char for char in branch if char in dangerous_chars))
-        )
+        invalid_chars = "".join(sorted(set(char for char in branch if char in dangerous_chars)))
+        raise ValidationError(f"Branch name contains invalid characters: {invalid_chars}")
 
     # Check for path traversal attempts
     if (
@@ -204,7 +198,7 @@ def sanitize_command_args(args):
         # Check for shell metacharacters that could be dangerous
         dangerous_patterns = [";", "|", "&", "$", "`", "(", ")", "<", ">", '"', "'"]
         if any(pattern in arg for pattern in dangerous_patterns):
-            raise ValidationError("Command argument contains dangerous characters: {}".format(arg))
+            raise ValidationError(f"Command argument contains dangerous characters: {arg}")
 
         sanitized.append(arg)
 
@@ -216,8 +210,13 @@ try:
     from .main import Fore, print_colored
 except ImportError:
     # Fallback for when this module is imported directly
-    def print_colored(message, color="", bright=False):
+    def print_colored(
+        message, color="", bright=False
+    ):  # pylint: disable=unused-argument
+        """Fallback print_colored when colorama is not available."""
         print(message)
 
-    class Fore:
+    class Fore:  # pylint: disable=too-few-public-methods
+        """Fallback Fore class when colorama is not available."""
+
         YELLOW = ""

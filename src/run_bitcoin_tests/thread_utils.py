@@ -38,7 +38,6 @@ import atexit
 import os
 import tempfile
 import threading
-import time
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set
@@ -78,7 +77,7 @@ def initialize_thread_safety() -> None:
 
     # Set up signal handlers for clean shutdown (if needed)
     try:
-        import signal
+        import signal  # pylint: disable=import-outside-toplevel
 
         signal.signal(signal.SIGTERM, _signal_handler)
         signal.signal(signal.SIGINT, _signal_handler)
@@ -89,9 +88,9 @@ def initialize_thread_safety() -> None:
     logger.debug("Thread safety mechanisms initialized")
 
 
-def _signal_handler(signum, frame):
+def _signal_handler(signum, frame):  # pylint: disable=unused-argument
     """Handle termination signals for clean shutdown."""
-    logger.info(f"Received signal {signum}, initiating clean shutdown")
+    logger.info("Received signal %s, initiating clean shutdown", signum)
     emergency_cleanup()
     os._exit(1)
 
@@ -106,14 +105,13 @@ def _emergency_cleanup():
 
 def emergency_cleanup():
     """Perform emergency cleanup of all resources."""
-    global _active_containers, _temp_directories
-
+    # No need for global statement since we're not assigning to these variables
     with _docker_lock:
         for container_id in _active_containers.copy():
             try:
                 _force_remove_container(container_id)
-            except Exception as e:
-                logger.error(f"Failed to cleanup container {container_id}: {e}")
+            except Exception as exc:
+                logger.error("Failed to cleanup container %s: %s", container_id, exc)
 
         _active_containers.clear()
 
@@ -121,8 +119,8 @@ def emergency_cleanup():
         for temp_dir in _temp_directories.copy():
             try:
                 _force_remove_temp_dir(temp_dir)
-            except Exception as e:
-                logger.error(f"Failed to cleanup temp directory {temp_dir}: {e}")
+            except Exception as exc:
+                logger.error("Failed to cleanup temp directory %s: %s", temp_dir, exc)
 
         _temp_directories.clear()
 
@@ -130,8 +128,8 @@ def emergency_cleanup():
     for handler in _cleanup_handlers.copy():
         try:
             handler()
-        except Exception as e:
-            logger.error(f"Error in cleanup handler: {e}")
+        except Exception as exc:
+            logger.error("Error in cleanup handler: %s", exc)
 
     _cleanup_handlers.clear()
 
@@ -139,28 +137,32 @@ def emergency_cleanup():
 def _force_remove_container(container_id: str):
     """Force remove a Docker container."""
     try:
-        import subprocess
+        import subprocess  # pylint: disable=import-outside-toplevel
 
         result = subprocess.run(
-            ["docker", "rm", "-f", container_id], capture_output=True, text=True, timeout=30
+            ["docker", "rm", "-f", container_id],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
         )
         if result.returncode == 0:
-            logger.debug(f"Force removed container {container_id}")
+            logger.debug("Force removed container %s", container_id)
         else:
-            logger.warning(f"Failed to remove container {container_id}: {result.stderr}")
-    except Exception as e:
-        logger.error(f"Error removing container {container_id}: {e}")
+            logger.warning("Failed to remove container %s: %s", container_id, result.stderr)
+    except Exception as exc:
+        logger.error("Error removing container %s: %s", container_id, exc)
 
 
 def _force_remove_temp_dir(temp_dir: Path):
     """Force remove a temporary directory."""
     try:
-        import shutil
+        import shutil  # pylint: disable=import-outside-toplevel
 
         shutil.rmtree(temp_dir, ignore_errors=True)
-        logger.debug(f"Removed temp directory {temp_dir}")
-    except Exception as e:
-        logger.error(f"Error removing temp directory {temp_dir}: {e}")
+        logger.debug("Removed temp directory %s", temp_dir)
+    except Exception as exc:
+        logger.error("Error removing temp directory %s: %s", temp_dir, exc)
 
 
 @contextmanager
@@ -207,7 +209,7 @@ def file_system_lock(operation: str = "file_operation"):
     Args:
         operation: Description of the operation for logging
     """
-    logger.debug(f"Acquiring file system lock for: {operation}")
+    logger.debug("Acquiring file system lock for: %s", operation)
     acquired_lock = _file_system_lock.acquire(timeout=30.0)
     if not acquired_lock:
         raise TimeoutError(f"Failed to acquire file system lock for {operation}")
@@ -216,7 +218,7 @@ def file_system_lock(operation: str = "file_operation"):
         yield
     finally:
         _file_system_lock.release()
-        logger.debug(f"Released file system lock for: {operation}")
+        logger.debug("Released file system lock for: %s", operation)
 
 
 @contextmanager
@@ -254,17 +256,17 @@ def atomic_directory_operation(directory: Path, operation: str = "directory_op")
 
         # Check if directory already exists
         if directory.exists():
-            logger.debug(f"Directory {directory} already exists")
+            logger.debug("Directory %s already exists", directory)
             yield directory
             return
 
         # Create directory atomically
         try:
             directory.mkdir(parents=True, exist_ok=True)
-            logger.debug(f"Created directory {directory} for {operation}")
+            logger.debug("Created directory %s for %s", directory, operation)
             yield directory
-        except Exception as e:
-            logger.error(f"Failed to create directory {directory}: {e}")
+        except Exception as exc:
+            logger.error("Failed to create directory %s: %s", directory, exc)
             raise
 
 
@@ -298,15 +300,15 @@ def thread_safe_temp_dir(prefix: str = "bitcoin_tests_", suffix: str = ""):
             # Create temporary directory
             temp_dir = Path(tempfile.mkdtemp(prefix=prefix, suffix=suffix))
             _temp_directories.add(temp_dir)
-            logger.debug(f"Created thread-safe temp directory: {temp_dir}")
+            logger.debug("Created thread-safe temp directory: %s", temp_dir)
 
             yield temp_dir
 
-        except Exception as e:
-            logger.error(f"Failed to create temp directory: {e}")
+        except Exception as exc:
+            logger.error("Failed to create temp directory: %s", exc)
             if temp_dir and temp_dir.exists():
                 try:
-                    import shutil
+                    import shutil  # pylint: disable=import-outside-toplevel
 
                     shutil.rmtree(temp_dir)
                 except Exception:
@@ -317,12 +319,12 @@ def thread_safe_temp_dir(prefix: str = "bitcoin_tests_", suffix: str = ""):
                 _temp_directories.discard(temp_dir)
                 if temp_dir.exists():
                     try:
-                        import shutil
+                        import shutil  # pylint: disable=import-outside-toplevel
 
                         shutil.rmtree(temp_dir)
-                        logger.debug(f"Cleaned up temp directory: {temp_dir}")
-                    except Exception as e:
-                        logger.warning(f"Failed to cleanup temp directory {temp_dir}: {e}")
+                        logger.debug("Cleaned up temp directory: %s", temp_dir)
+                    except Exception as exc:
+                        logger.warning("Failed to cleanup temp directory %s: %s", temp_dir, exc)
 
 
 @contextmanager
@@ -340,34 +342,37 @@ def exclusive_file_operation(file_path: Path, mode: str = "r", operation: str = 
     """
     with file_system_lock(f"{operation} on {file_path}"):
         try:
-            with open(file_path, mode, encoding="utf-8") as f:
-                logger.debug(f"Opened file {file_path} for {operation}")
-                yield f
-        except Exception as e:
-            logger.error(f"Error in file operation {operation} on {file_path}: {e}")
+            with open(file_path, mode, encoding="utf-8") as file_obj:
+                logger.debug("Opened file %s for %s", file_path, operation)
+                yield file_obj
+        except Exception as exc:
+            logger.error("Error in file operation %s on %s: %s", operation, file_path, exc)
             raise
 
 
-def register_cleanup_handler(handler: callable):
+_cleanup_handler_lock = threading.Lock()
+
+
+def register_cleanup_handler(handler: Callable[[], None]):
     """
     Register a cleanup handler to be called on exit.
 
     Args:
         handler: Callable to execute during cleanup
     """
-    with threading.Lock():
+    with _cleanup_handler_lock:
         _cleanup_handlers.append(handler)
         logger.debug("Registered cleanup handler")
 
 
-def unregister_cleanup_handler(handler: callable):
+def unregister_cleanup_handler(handler: Callable[[], None]):
     """
     Unregister a cleanup handler.
 
     Args:
         handler: Handler to remove
     """
-    with threading.Lock():
+    with _cleanup_handler_lock:
         try:
             _cleanup_handlers.remove(handler)
             logger.debug("Unregistered cleanup handler")
@@ -439,7 +444,7 @@ class ResourceTracker:
         """
         with self._lock:
             self._resources[name] = resource
-            logger.debug(f"Registered resource: {name}")
+            logger.debug("Registered resource: %s", name)
 
     def unregister_resource(self, name: str) -> None:
         """
@@ -451,7 +456,7 @@ class ResourceTracker:
         with self._lock:
             if name in self._resources:
                 del self._resources[name]
-                logger.debug(f"Unregistered resource: {name}")
+                logger.debug("Unregistered resource: %s", name)
 
     def get_resource(self, name: str) -> Optional[Any]:
         """
@@ -491,9 +496,9 @@ class ResourceTracker:
                         resource.cleanup()
                     elif hasattr(resource, "close") and callable(resource.close):
                         resource.close()
-                    logger.debug(f"Cleaned up resource: {name}")
-                except Exception as e:
-                    logger.error(f"Error cleaning up resource {name}: {e}")
+                    logger.debug("Cleaned up resource: %s", name)
+                except Exception as exc:
+                    logger.error("Error cleaning up resource %s: %s", name, exc)
 
             self._resources.clear()
 

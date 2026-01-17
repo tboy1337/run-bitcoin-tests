@@ -92,7 +92,7 @@ class DockerConfig:
 
 
 @dataclass
-class NetworkConfig:
+class NetworkConfig:  # pylint: disable=too-many-instance-attributes
     """Network-related configuration."""
 
     timeout: int = 300  # seconds
@@ -107,7 +107,7 @@ class NetworkConfig:
 
 
 @dataclass
-class ExecutionConfig:
+class ExecutionConfig:  # pylint: disable=too-many-instance-attributes
     """Test execution configuration."""
 
     timeout: int = 3600  # seconds
@@ -161,7 +161,7 @@ class BitcoinConfig:
 
 
 @dataclass
-class AppConfig:
+class AppConfig:  # pylint: disable=too-many-instance-attributes
     """Main application configuration."""
 
     repository: RepositoryConfig = field(default_factory=RepositoryConfig)

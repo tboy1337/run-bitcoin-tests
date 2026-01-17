@@ -51,7 +51,12 @@ from .config import get_config, load_config
 from .logging_config import setup_logging
 from .network_utils import NetworkError, clone_bitcoin_repo_enhanced
 from .performance_utils import get_performance_monitor, optimize_system_resources
-from .thread_utils import initialize_thread_safety, resource_tracker
+from .thread_utils import (
+    docker_container_lock,
+    file_system_lock,
+    initialize_thread_safety,
+    resource_tracker,
+)
 
 try:
     import colorama
@@ -86,7 +91,9 @@ def print_colored(message: str, color: str = Fore.WHITE, bright: bool = False) -
     print(f"{prefix}{color}{message}{Style.RESET_ALL}")
 
 
-def run_command(command: List[str], description: str) -> subprocess.CompletedProcess[str]:
+def run_command(
+    command: List[str], description: str  # pylint: disable=unused-argument
+) -> subprocess.CompletedProcess[str]:
     """
     Run a shell command and return the completed process.
 
@@ -118,8 +125,8 @@ def run_command(command: List[str], description: str) -> subprocess.CompletedPro
             "Please ensure Docker and Docker Compose are installed and in PATH.", Fore.WHITE
         )
         sys.exit(1)
-    except Exception as e:
-        print_colored(f"[ERROR] Error running command: {e}", Fore.RED)
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        print_colored(f"[ERROR] Error running command: {exc}", Fore.RED)
         sys.exit(1)
 
 
@@ -255,7 +262,10 @@ def build_docker_image() -> None:
 
     container_name = f"{config.docker.container_name}-build"
     with docker_container_lock(container_name):
-        from .cross_platform_utils import get_cross_platform_command
+        # Import here to avoid circular import
+        from .cross_platform_utils import (  # pylint: disable=import-outside-toplevel
+            get_cross_platform_command,
+        )
 
         cmd_utils = get_cross_platform_command()
         docker_compose_cmd = cmd_utils.get_docker_compose_command()
@@ -271,7 +281,7 @@ def build_docker_image() -> None:
         cmd.append(config.docker.container_name)
 
         # Enable buildkit for better caching and performance
-        import os
+        import os  # pylint: disable=import-outside-toplevel
 
         old_docker_buildkit = os.environ.get("DOCKER_BUILDKIT")
         os.environ["DOCKER_BUILDKIT"] = "1"
@@ -321,7 +331,10 @@ def run_tests() -> int:
 
     container_name = f"{config.docker.container_name}-runner"
     with docker_container_lock(container_name):
-        from .cross_platform_utils import get_cross_platform_command
+        # Import here to avoid circular import
+        from .cross_platform_utils import (  # pylint: disable=import-outside-toplevel
+            get_cross_platform_command,
+        )
 
         cmd_utils = get_cross_platform_command()
         docker_compose_cmd = cmd_utils.get_docker_compose_command()
@@ -401,7 +414,6 @@ def parse_arguments() -> argparse.Namespace:
     Raises:
         SystemExit: For configuration errors or when special actions complete
     """
-    """Parse command line arguments."""
     parser = argparse.ArgumentParser(
         description="Run Bitcoin Core tests (C++ unit tests and Python functional tests) in Docker",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -549,31 +561,34 @@ Configuration:
 
     # Handle special cases
     if args.config:
-        from .config import config_manager
+        # Import here since config_manager is only needed for special cases
+        from .config import config_manager  # pylint: disable=import-outside-toplevel
 
         config_manager.load_from_env_file(args.config)
 
     if args.show_config:
         try:
-            config = load_config(args)
-            from .config import config_manager
+            load_config(args)
+            # Import here since config_manager is only needed for special cases
+            from .config import config_manager  # pylint: disable=import-outside-toplevel
 
             print(config_manager.get_summary())
             sys.exit(0)
-        except ValueError as e:
-            print_colored(f"[CONFIG ERROR] {e}", Fore.RED)
+        except ValueError as exc:
+            print_colored(f"[CONFIG ERROR] {exc}", Fore.RED)
             sys.exit(1)
 
     if args.save_config:
         try:
-            config = load_config(args)
-            from .config import config_manager
+            load_config(args)
+            # Import here since config_manager is only needed for special cases
+            from .config import config_manager  # pylint: disable=import-outside-toplevel
 
             config_manager.save_to_env_file(args.save_config)
             print_colored(f"Configuration saved to {args.save_config}", Fore.GREEN)
             sys.exit(0)
-        except Exception as e:
-            print_colored(f"[ERROR] Failed to save configuration: {e}", Fore.RED)
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            print_colored(f"[ERROR] Failed to save configuration: {exc}", Fore.RED)
             sys.exit(1)
 
     return args
@@ -605,8 +620,8 @@ def main() -> None:
     # Load configuration (this will load from .env files, env vars, and CLI args)
     try:
         config = load_config(args)
-    except ValueError as e:
-        print_colored(f"[CONFIG ERROR] {e}", Fore.RED)
+    except ValueError as exc:
+        print_colored(f"[CONFIG ERROR] {exc}", Fore.RED)
         sys.exit(1)
 
     # Initialize thread safety
@@ -624,9 +639,11 @@ def main() -> None:
     )
 
     print_colored("Bitcoin Core C++ Tests Runner", Fore.CYAN, bright=True)
-    if not config.quiet:
-        from .config import config_manager
 
+    # Import config_manager for summary display
+    from .config import config_manager  # pylint: disable=import-outside-toplevel
+
+    if not config.quiet:
         print_colored(config_manager.get_summary(), Fore.WHITE)
         print()
 
@@ -634,9 +651,7 @@ def main() -> None:
     if not config.quiet:
         print_colored(f"Started at {start_time.strftime('%Y-%m-%d %H:%M:%S')}", Fore.WHITE)
     logger.info("Starting Bitcoin Core tests runner")
-    from .config import config_manager
-
-    logger.info(f"Configuration: {config_manager.get_summary().replace(chr(10), ' | ')}")
+    logger.info("Configuration: %s", config_manager.get_summary().replace(chr(10), " | "))
     if not config.quiet:
         print()
 
@@ -666,7 +681,7 @@ def main() -> None:
         # Run tests
         logger.debug("Running Bitcoin Core unit tests")
         exit_code = run_tests()
-        logger.info(f"Tests completed with exit code: {exit_code}")
+        logger.info("Tests completed with exit code: %s", exit_code)
 
         # Cleanup (unless configured to keep containers)
         if not config.docker.keep_containers:
@@ -685,41 +700,35 @@ def main() -> None:
         duration = end_time - start_time
         if not config.quiet:
             print_colored(f"Duration: {duration}", Fore.WHITE)
-        logger.info(f"Total execution time: {duration}")
+        logger.info("Total execution time: %s", duration)
 
         if exit_code == 0:
             logger.info("All tests passed successfully")
         else:
-            logger.warning(f"Some tests failed (exit code: {exit_code})")
+            logger.warning("Some tests failed (exit code: %s)", exit_code)
 
         sys.exit(exit_code)
-
-    except Exception as e:
-        # Handle network and other errors generically since we're not using the complex security module
-        if "network" in str(e).lower() or "connection" in str(e).lower():
-            logger.error(f"Network error: {e}")
-            print_colored(f"[NETWORK ERROR] {e}", Fore.RED)
-            print_colored("Please check your internet connection and try again.", Fore.WHITE)
-        elif "repository" in str(e).lower() or "not found" in str(e).lower():
-            logger.error(f"Repository error: {e}")
-            print_colored(f"[REPO ERROR] {e}", Fore.RED)
-            print_colored(
-                "Please verify the repository URL and branch name are correct.", Fore.WHITE
-            )
-        else:
-            logger.error(f"Unexpected error: {e}")
-            print_colored(f"[ERROR] {e}", Fore.RED)
-
-        cleanup_containers()
-        sys.exit(1)
 
     except KeyboardInterrupt:
         logger.warning("Operation cancelled by user (KeyboardInterrupt)")
         print_colored("\n[INTERRUPTED] Operation cancelled by user", Fore.YELLOW)
         cleanup_containers()
         sys.exit(130)
-    except Exception as e:
-        logger.error(f"An unexpected error occurred: {e}", exc_info=True)
-        print_colored(f"[ERROR] An unexpected error occurred: {e}", Fore.RED)
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        # Handle network and other errors generically since we're not using the complex security module
+        if "network" in str(exc).lower() or "connection" in str(exc).lower():
+            logger.error("Network error: %s", exc)
+            print_colored(f"[NETWORK ERROR] {exc}", Fore.RED)
+            print_colored("Please check your internet connection and try again.", Fore.WHITE)
+        elif "repository" in str(exc).lower() or "not found" in str(exc).lower():
+            logger.error("Repository error: %s", exc)
+            print_colored(f"[REPO ERROR] {exc}", Fore.RED)
+            print_colored(
+                "Please verify the repository URL and branch name are correct.", Fore.WHITE
+            )
+        else:
+            logger.error("Unexpected error: %s", exc, exc_info=True)
+            print_colored(f"[ERROR] {exc}", Fore.RED)
+
         cleanup_containers()
         sys.exit(1)
