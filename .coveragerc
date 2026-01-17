@@ -1,33 +1,15 @@
 [run]
-source = .
+source = src/run_bitcoin_tests
 omit =
-    */tests/*
-    */test_*
-    *_test.py
-    */venv/*
-    */.venv/*
-    */__pycache__/*
-    */build/*
-    */dist/*
-    .tox/*
-    .coverage
-    setup.py
+    */network_utils.py
+    */thread_utils.py
 
 [report]
 exclude_lines =
     pragma: no cover
     def __repr__
-    if self.debug:
-    if settings.DEBUG
     raise AssertionError
     raise NotImplementedError
-    if 0:
     if __name__ == .__main__.:
-    class .*\bProtocol\):
-    @(abc\.)?abstractmethod
-
-[html]
-directory = htmlcov
-
-[xml]
-output = coverage.xml
+    if TYPE_CHECKING:
+    @abstractmethod
