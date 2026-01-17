@@ -17,7 +17,7 @@ from run_bitcoin_tests.config import (
     NetworkConfig,
     RepositoryConfig,
     SecurityConfig,
-    TestConfig,
+    ExecutionConfig,
     get_config,
     load_config,
     reset_config,
@@ -251,7 +251,7 @@ class TestConfigLoading:
 
     def test_load_config_precedence(self):
         """Test that configuration loading respects precedence order."""
-        # Create mock args
+        # Create mock args with all required attributes
         mock_args = Mock()
         mock_args.repo_url = "https://cli-args.com"
         mock_args.branch = None
@@ -263,6 +263,18 @@ class TestConfigLoading:
         mock_args.save_config = None
         mock_args.dry_run = False
         mock_args.show_config = False
+        # Add new test suite attributes
+        mock_args.build_jobs = None
+        mock_args.build_type = None
+        mock_args.keep_containers = False
+        mock_args.no_cache = False
+        mock_args.performance_monitor = False
+        mock_args.test_suite = None
+        mock_args.cpp_only = False
+        mock_args.python_only = False
+        mock_args.python_tests = None
+        mock_args.python_jobs = None
+        mock_args.exclude_test = None
 
         # Set environment variables (should be overridden by CLI)
         env_vars = {

@@ -107,7 +107,7 @@ class NetworkConfig:
 
 
 @dataclass
-class TestConfig:
+class ExecutionConfig:
     """Test execution configuration."""
     timeout: int = 3600  # seconds
     parallel: bool = True
@@ -163,7 +163,7 @@ class AppConfig:
     build: BuildConfig = field(default_factory=BuildConfig)
     docker: DockerConfig = field(default_factory=DockerConfig)
     network: NetworkConfig = field(default_factory=NetworkConfig)
-    test: TestConfig = field(default_factory=TestConfig)
+    test: ExecutionConfig = field(default_factory=ExecutionConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     security: SecurityConfig = field(default_factory=SecurityConfig)
     bitcoin: BitcoinConfig = field(default_factory=BitcoinConfig)

@@ -97,11 +97,10 @@ def _signal_handler(signum, frame):
 
 def _emergency_cleanup():
     """Emergency cleanup function called at exit."""
-    logger.info("Performing emergency cleanup")
     try:
         emergency_cleanup()
-    except Exception as e:
-        logger.error(f"Error during emergency cleanup: {e}")
+    except Exception:  # noqa: S110
+        pass  # Silently ignore errors during shutdown
 
 
 def emergency_cleanup():

@@ -11,16 +11,16 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from run_bitcoin_tests.config import ConfigManager, TestConfig, get_config, load_config
+from run_bitcoin_tests.config import ConfigManager, ExecutionConfig, get_config, load_config
 from run_bitcoin_tests.main import parse_arguments
 
 
-class TestTestConfig:
-    """Test the TestConfig dataclass."""
+class TestExecutionConfig:
+    """Test the ExecutionConfig dataclass."""
 
     def test_default_values(self) -> None:
-        """Test that TestConfig has correct default values."""
-        config = TestConfig()
+        """Test that ExecutionConfig has correct default values."""
+        config = ExecutionConfig()
         assert config.test_suite == "both"
         assert config.python_test_scope == "standard"
         assert config.python_test_jobs == 4
@@ -29,8 +29,8 @@ class TestTestConfig:
         assert config.exclude_python_tests == []
 
     def test_custom_values(self) -> None:
-        """Test TestConfig with custom values."""
-        config = TestConfig(
+        """Test ExecutionConfig with custom values."""
+        config = ExecutionConfig(
             test_suite="python",
             python_test_scope="quick",
             python_test_jobs=8,

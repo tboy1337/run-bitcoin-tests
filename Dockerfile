@@ -6,7 +6,7 @@ FROM ubuntu:22.04
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install basic build tools and dependencies
+# Install all build tools and dependencies in a single layer
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
@@ -16,10 +16,6 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     python3-setuptools \
     git \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Bitcoin Core specific dependencies
-RUN apt-get update && apt-get install -y \
     libevent-dev \
     libboost-dev \
     libsqlite3-dev \
@@ -31,8 +27,11 @@ RUN apt-get update && apt-get install -y \
     libdb++-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies for functional tests
-RUN pip3 install --no-cache-dir \
+# Upgrade pip, setuptools, and wheel to latest versions
+RUN pip3 install --no-cache-dir --upgrade \
+    pip \
+    setuptools \
+    wheel \
     pyzmq \
     requests
 
