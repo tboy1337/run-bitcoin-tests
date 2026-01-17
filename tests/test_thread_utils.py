@@ -53,7 +53,6 @@ class TestThreadSafeCounter:
     def test_thread_safety(self):
         """Test counter works correctly with multiple threads."""
         counter = ThreadSafeCounter()
-        results = []
 
         def increment_worker():
             for _ in range(100):

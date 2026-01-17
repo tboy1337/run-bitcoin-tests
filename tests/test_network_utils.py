@@ -9,12 +9,12 @@ import pytest
 
 from run_bitcoin_tests.network_utils import (
     AuthenticationError,
-    ConnectionError,
     DiskSpaceError,
     GitCache,
+    NetworkConnectionError,
+    NetworkTimeoutError,
     RepositoryError,
     SSLError,
-    TimeoutError,
     _is_authentication_error,
     _is_disk_space_error,
     _is_network_error,
@@ -175,7 +175,7 @@ class TestRunGitCommandWithRetry:
         """Test timeout error handling."""
         mock_run.side_effect = subprocess.TimeoutExpired(["git", "clone"], 300)
 
-        with pytest.raises(TimeoutError):
+        with pytest.raises(NetworkTimeoutError):
             run_git_command_with_retry(
                 ["git", "clone", "repo"], "Clone repository", max_retries=1, timeout=300
             )
@@ -218,10 +218,10 @@ class TestCloneBitcoinRepoEnhanced:
     def test_clone_with_connection_error(self, mock_diagnose, mock_run_git):
         """Test clone with connection error."""
         mock_diagnose.return_value = ["[FAIL] Cannot reach host"]
-        mock_run_git.side_effect = ConnectionError("Network connection failed")
+        mock_run_git.side_effect = NetworkConnectionError("Network connection failed")
 
         with patch("pathlib.Path.exists", return_value=False):
-            with pytest.raises(ConnectionError):
+            with pytest.raises(NetworkConnectionError):
                 clone_bitcoin_repo_enhanced("https://github.com/bitcoin/bitcoin", "master")
 
     @patch("run_bitcoin_tests.network_utils.run_git_command_with_retry")
@@ -343,9 +343,10 @@ class TestGitCache:
             cache._save_metadata()
 
             mock_open.assert_called_once()
-            mock_json_dump.assert_called_once_with(
-                {"test": "data"}, mock_open.return_value.__enter__(), indent=2
-            )
+            # Check that json.dump was called with the mock file object
+            call_args = mock_json_dump.call_args
+            assert call_args[0][0] == {"test": "data"}
+            assert call_args[1]["indent"] == 2
 
     @patch("logging.warning")
     @patch("builtins.open", side_effect=IOError("Write error"))

@@ -61,9 +61,9 @@ try:
     from .main import Fore, print_colored
 except ImportError:
 
-    def print_colored(
+    def print_colored(  # pylint: disable=unused-argument
         message: str, color: str = "", bright: bool = False
-    ) -> None:  # pylint: disable=unused-argument
+    ) -> None:
         """Fallback print_colored when colorama is not available."""
         print(message)
 
@@ -213,8 +213,6 @@ class GitCache:
                         break
 
                     try:
-                        import shutil
-
                         shutil.rmtree(cache_path)
                         total_size_gb -= size / (1024**3)
 

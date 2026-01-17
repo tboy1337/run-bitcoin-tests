@@ -144,8 +144,7 @@ class CrossPlatformCommand:
         """
         if self.platform.is_windows:
             return ["ping", "-n", "1", "-w", str(timeout * 1000), host]
-        else:
-            return ["ping", "-c", "1", "-W", str(timeout), host]
+        return ["ping", "-c", "1", "-W", str(timeout), host]
 
     def get_docker_compose_command(self) -> List[str]:
         """

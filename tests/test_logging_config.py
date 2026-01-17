@@ -80,13 +80,12 @@ class TestSetupLogging:
     @patch("pathlib.Path.mkdir", side_effect=Exception("Permission denied"))
     def test_setup_logging_file_creation_error(self, mock_mkdir):
         """Test setup_logging handles file creation errors gracefully."""
-        with patch("run_bitcoin_tests.logging_config.setup_logging") as mock_setup:
-            # This is tricky to test directly, so we'll test that the function
-            # doesn't crash and continues with console logging
-            logger = setup_logging(log_file="/invalid/path/log.txt")
+        # This is tricky to test directly, so we'll test that the function
+        # doesn't crash and continues with console logging
+        logger = setup_logging(log_file="/invalid/path/log.txt")
 
-            # Should still have at least console handler
-            assert len(logger.handlers) >= 1
+        # Should still have at least console handler
+        assert len(logger.handlers) >= 1
 
     def test_setup_logging_removes_existing_handlers(self):
         """Test that setup_logging removes existing handlers."""
