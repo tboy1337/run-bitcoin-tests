@@ -6,6 +6,9 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 exclude = ["run_bitcoin_tests.validation_backup"]
 
+[tool.setuptools.package-data]
+run_bitcoin_tests = ["py.typed"]
+
 [project]
 name = "run-bitcoin-tests"
 version = "1.0.0"
