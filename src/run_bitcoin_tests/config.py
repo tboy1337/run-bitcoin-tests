@@ -35,14 +35,9 @@ Example Usage:
 """
 
 import os
-import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
-
-from .logging_config import get_logger
-
-logger = get_logger(__name__)
 
 from .logging_config import get_logger
 
@@ -189,14 +184,14 @@ class ConfigManager:
         env_path = Path(env_file)
 
         if not env_path.exists():
-            logger.debug(f"Environment file {env_path} does not exist, skipping")
+            logger.debug("Environment file %s does not exist, skipping", env_path)
             return
 
         if not HAS_DOTENV:
-            logger.warning(f"Cannot load {env_path}: python-dotenv not installed")
+            logger.warning("Cannot load %s: python-dotenv not installed", env_path)
             return
 
-        logger.info(f"Loading configuration from {env_path}")
+        logger.info("Loading configuration from %s", env_path)
         load_dotenv(env_path)
         self._loaded_env_files.append(env_path)
 
@@ -335,7 +330,7 @@ class ConfigManager:
             return parsed
 
         except (ValueError, TypeError):
-            logger.warning(f"Invalid value for {name}={value}, using default {default}")
+            logger.warning("Invalid value for %s=%s, using default %s", name, value, default)
             return default
 
     def validate_config(self) -> List[str]:
@@ -348,7 +343,9 @@ class ConfigManager:
 
         # Validate URLs are reasonable length
         if len(self.config.repository.url) > self.config.security.max_url_length:
-            errors.append(f"Repository URL too long (max {self.config.security.max_url_length} characters)")
+            errors.append(
+                f"Repository URL too long (max {self.config.security.max_url_length} characters)"
+            )
 
         # Validate build type
         valid_build_types = ["Debug", "Release", "RelWithDebInfo", "MinSizeRel"]
@@ -480,7 +477,7 @@ class ConfigManager:
         ])
 
         env_path.write_text("\n".join(lines), encoding='utf-8')
-        logger.info(f"Configuration saved to {env_path}")
+        logger.info("Configuration saved to %s", env_path)
 
 
 # Global configuration instance
@@ -506,15 +503,6 @@ def load_config(args: Optional[Any] = None) -> AppConfig:
     Raises:
         ValueError: If configuration validation fails
     """
-    """
-    Load configuration from all sources with proper precedence.
-
-    Precedence order (highest to lowest):
-    1. Command line arguments
-    2. Environment variables
-    3. .env files
-    4. Default values
-    """
     # Load from .env files first (lowest precedence except defaults)
     config_files = [".env", ".env.local", ".env.production", ".env.development"]
     for config_file in config_files:
@@ -532,7 +520,7 @@ def load_config(args: Optional[Any] = None) -> AppConfig:
     if validation_errors:
         logger.error("Configuration validation failed:")
         for error in validation_errors:
-            logger.error(f"  - {error}")
+            logger.error("  - %s", error)
         raise ValueError("Invalid configuration")
 
     logger.debug("Configuration loaded successfully")
@@ -565,9 +553,9 @@ def update_config(updates: Dict[str, Any]) -> None:
     for key, value in updates.items():
         if hasattr(config_manager.config, key):
             setattr(config_manager.config, key, value)
-            logger.debug(f"Updated configuration: {key}")
+            logger.debug("Updated configuration: %s", key)
         else:
-            logger.warning(f"Unknown configuration key: {key}")
+            logger.warning("Unknown configuration key: %s", key)
 
 
 def reset_config() -> None:
@@ -579,6 +567,6 @@ def reset_config() -> None:
     configuration state is needed.
     """
     config_manager.config = AppConfig()
-    config_manager._env_cache.clear()
-    config_manager._loaded_env_files.clear()
+    config_manager._env_cache.clear()  # pylint: disable=protected-access
+    config_manager._loaded_env_files.clear()  # pylint: disable=protected-access
     logger.info("Configuration reset to defaults")

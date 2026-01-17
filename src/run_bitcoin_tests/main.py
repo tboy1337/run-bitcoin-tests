@@ -43,18 +43,15 @@ Example usage:
 import argparse
 import subprocess
 import sys
-import time
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 from .config import get_config, load_config
-from .logging_config import get_logger, setup_logging
-from .network_utils import clone_bitcoin_repo_enhanced
-from .performance_utils import get_performance_monitor, optimize_system_resources, ResourceOptimizer
-from .thread_utils import (atomic_directory_operation, docker_container_lock, file_system_lock,
-                          initialize_thread_safety, register_cleanup_handler, resource_tracker)
-from .validation import validate_branch_name, validate_git_url, ValidationError
+from .logging_config import setup_logging
+from .network_utils import clone_bitcoin_repo_enhanced, NetworkError
+from .performance_utils import get_performance_monitor, optimize_system_resources
+from .thread_utils import initialize_thread_safety, resource_tracker
 
 try:
     import colorama
@@ -162,20 +159,18 @@ def clone_bitcoin_repo(repo_url: str, branch: str) -> None:
         # Log performance metrics
         metrics = monitor.stop_monitoring()
         if metrics and not config.quiet:
-            avg_cpu = sum(m.get('cpu_percent', 0) for m in metrics) / len(metrics)
-            avg_memory = sum(m.get('memory_percent', 0) for m in metrics) / len(metrics)
-            print_colored(".2f")
+            # Performance metrics collected
+            # avg_cpu = sum(m.get('cpu_percent', 0) for m in metrics) / len(metrics)
+            # avg_memory = sum(m.get('memory_percent', 0) for m in metrics) / len(metrics)
+            pass
 
-    except Exception:
-        # Stop monitoring even if cloning fails
-        monitor.stop_monitoring()
-        raise
-    except NetworkError as e:
+    except NetworkError as exc:
         # Network errors are already handled in the enhanced function
         # Just re-raise to maintain the same interface
-        raise e
-    except Exception as e:
-        print_colored(f"[ERROR] Failed to clone repository: {e}", Fore.RED)
+        monitor.stop_monitoring()
+        raise exc
+    except Exception as exc:
+        print_colored(f"[ERROR] Failed to clone repository: {exc}", Fore.RED)
         print_colored("Please ensure git is installed and you have internet access.", Fore.WHITE)
         raise
 

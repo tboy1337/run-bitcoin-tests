@@ -18,7 +18,6 @@ extension-pkg-whitelist=PyQt5,PyQt6,PySide2,PySide6
 
 [REPORTS]
 output-format=text
-include-ids=yes
 reports=no
 
 [SIMILARITIES]
@@ -60,4 +59,4 @@ ext-import-graph=
 int-import-graph=
 
 [EXCEPTIONS]
-overgeneral-exceptions=Exception
+overgeneral-exceptions=builtins.Exception

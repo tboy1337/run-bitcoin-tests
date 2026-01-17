@@ -45,12 +45,10 @@ import json
 import logging
 import shutil
 import subprocess
-import sys
-import tempfile
 import threading
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 from urllib.parse import urlparse
 
 from .logging_config import get_logger
@@ -62,9 +60,11 @@ logger = get_logger(__name__)
 try:
     from .main import print_colored, Fore
 except ImportError:
-    def print_colored(message, color="", bright=False):
+    def print_colored(message: str, color: str = "", bright: bool = False) -> None:  # pylint: disable=unused-argument
+        """Fallback print_colored when colorama is not available."""
         print(message)
-    class Fore:
+    class Fore:  # pylint: disable=too-few-public-methods
+        """Fallback Fore class when colorama is not available."""
         RED = ""
         GREEN = ""
         YELLOW = ""
@@ -74,37 +74,30 @@ except ImportError:
 
 class NetworkError(Exception):
     """Base exception for network-related errors."""
-    pass
 
 
-class ConnectionError(NetworkError):
+class NetworkConnectionError(NetworkError):
     """Raised when network connection fails."""
-    pass
 
 
-class TimeoutError(NetworkError):
+class NetworkTimeoutError(NetworkError):
     """Raised when network operation times out."""
-    pass
 
 
 class SSLError(NetworkError):
     """Raised when SSL/TLS certificate validation fails."""
-    pass
 
 
 class AuthenticationError(NetworkError):
     """Raised when authentication fails."""
-    pass
 
 
 class RepositoryError(NetworkError):
     """Raised when repository access fails."""
-    pass
 
 
 class DiskSpaceError(NetworkError):
     """Raised when insufficient disk space for operations."""
-    pass
 
 
 class GitCache:
@@ -480,29 +473,13 @@ def run_git_command_with_retry(
         subprocess.CompletedProcess object with execution results
 
     Raises:
-        ConnectionError: For network connectivity issues
+        NetworkConnectionError: For network connectivity issues
         SSLError: For SSL certificate validation failures
         AuthenticationError: For repository authentication failures
         RepositoryError: For repository access issues
         DiskSpaceError: For insufficient disk space
-        TimeoutError: For command execution timeouts
+        NetworkTimeoutError: For command execution timeouts
         RuntimeError: For other command execution failures
-    """
-    """
-    Run a git command with retry logic and comprehensive error handling.
-
-    Args:
-        cmd: Git command to execute
-        description: Human-readable description of the operation
-        max_retries: Maximum number of retry attempts
-        timeout: Timeout for each attempt in seconds
-        retry_delay: Delay between retries in seconds
-
-    Returns:
-        CompletedProcess object
-
-    Raises:
-        Various NetworkError subclasses based on the failure type
     """
     last_exception = None
 
@@ -542,8 +519,9 @@ def run_git_command_with_retry(
                         print_colored(f"Network error, retrying in {retry_delay} seconds...", Fore.YELLOW)
                         time.sleep(retry_delay)
                         continue
-                    else:
-                        raise ConnectionError(f"Network error after {max_retries} attempts: {error_msg}")
+                    raise NetworkConnectionError(
+                        f"Network error after {max_retries} attempts: {error_msg}"
+                    )
 
                 else:
                     # Generic error
@@ -565,18 +543,16 @@ def run_git_command_with_retry(
                 print_colored(f"Operation timed out, retrying in {retry_delay} seconds...", Fore.YELLOW)
                 time.sleep(retry_delay)
                 continue
-            else:
-                raise TimeoutError(f"Git command timed out after {max_retries} attempts")
+            raise NetworkTimeoutError(f"Git command timed out after {max_retries} attempts")
 
-        except Exception as e:
-            last_exception = e
+        except Exception as exc:
+            last_exception = exc
             if attempt < max_retries - 1:
-                logger.warning(f"Unexpected error (attempt {attempt + 1}/{max_retries}): {e}")
+                logger.warning(f"Unexpected error (attempt {attempt + 1}/{max_retries}): {exc}")
                 print_colored(f"Unexpected error, retrying in {retry_delay} seconds...", Fore.YELLOW)
                 time.sleep(retry_delay)
                 continue
-            else:
-                raise
+            raise
 
     # This should never be reached, but just in case
     raise last_exception or RuntimeError("Git command failed with unknown error")

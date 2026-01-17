@@ -28,14 +28,14 @@ class TestCloneBitcoinRepoErrorPaths:
     def test_clone_repo_network_error(self, mock_get_config: Mock, mock_clone: Mock) -> None:
         """Test handling of NetworkError during cloning."""
         from run_bitcoin_tests.network_utils import NetworkError
-        
+
         mock_config = MagicMock()
         mock_config.network.use_git_cache = False
         mock_config.quiet = True
         mock_get_config.return_value = mock_config
-        
+
         mock_clone.side_effect = NetworkError("Network connection failed")
-        
+
         with pytest.raises(NetworkError):
             clone_bitcoin_repo("https://github.com/bitcoin/bitcoin", "master")
 
@@ -48,14 +48,14 @@ class TestCloneBitcoinRepoErrorPaths:
         mock_config.network.use_git_cache = False
         mock_config.quiet = False
         mock_get_config.return_value = mock_config
-        
+
         # Mock performance monitor
         mock_perf_monitor = MagicMock()
         mock_perf_monitor.stop_monitoring.return_value = []
         mock_monitor.return_value = mock_perf_monitor
-        
+
         mock_clone.side_effect = RuntimeError("Unexpected error")
-        
+
         # Test that the exception is raised (error handling path is covered)
         with pytest.raises(RuntimeError, match="Unexpected error"):
             clone_bitcoin_repo("https://github.com/bitcoin/bitcoin", "master")
@@ -78,10 +78,10 @@ class TestParseArgumentsEdgeCases:
     def test_parse_args_show_config_success(self, mock_config_manager: Mock, mock_load_config: Mock) -> None:
         """Test --show-config option."""
         mock_config_manager.get_summary.return_value = "Test Config"
-        
+
         with pytest.raises(SystemExit) as exc_info:
             parse_arguments()
-        
+
         assert exc_info.value.code == 0
         mock_config_manager.get_summary.assert_called_once()
 
@@ -90,10 +90,10 @@ class TestParseArgumentsEdgeCases:
     def test_parse_args_show_config_error(self, mock_load_config: Mock, capsys: pytest.CaptureFixture[str]) -> None:
         """Test --show-config with configuration error."""
         mock_load_config.side_effect = ValueError("Invalid config")
-        
+
         with pytest.raises(SystemExit) as exc_info:
             parse_arguments()
-        
+
         assert exc_info.value.code == 1
         captured = capsys.readouterr()
         assert "[CONFIG ERROR]" in captured.out
@@ -105,7 +105,7 @@ class TestParseArgumentsEdgeCases:
         """Test --save-config option."""
         with pytest.raises(SystemExit) as exc_info:
             parse_arguments()
-        
+
         assert exc_info.value.code == 0
         mock_config_manager.save_to_env_file.assert_called_once_with('test.env')
         captured = capsys.readouterr()
@@ -117,10 +117,10 @@ class TestParseArgumentsEdgeCases:
     def test_parse_args_save_config_error(self, mock_config_manager: Mock, mock_load_config: Mock, capsys: pytest.CaptureFixture[str]) -> None:
         """Test --save-config with error."""
         mock_config_manager.save_to_env_file.side_effect = IOError("Cannot write file")
-        
+
         with pytest.raises(SystemExit) as exc_info:
             parse_arguments()
-        
+
         assert exc_info.value.code == 1
         captured = capsys.readouterr()
         assert "[ERROR] Failed to save configuration" in captured.out
@@ -134,10 +134,10 @@ class TestMainFunctionEdgeCases:
     def test_main_config_error(self, mock_load_config: Mock, capsys: pytest.CaptureFixture[str]) -> None:
         """Test main function with configuration error."""
         mock_load_config.side_effect = ValueError("Invalid configuration")
-        
+
         with pytest.raises(SystemExit) as exc_info:
             main()
-        
+
         assert exc_info.value.code == 1
         captured = capsys.readouterr()
         assert "[CONFIG ERROR]" in captured.out
@@ -167,13 +167,13 @@ class TestMainFunctionEdgeCases:
         mock_config.build.type = "RelWithDebInfo"
         mock_config.test.timeout = 3600
         mock_load_config.return_value = mock_config
-        
+
         mock_logger = MagicMock()
         mock_setup_logging.return_value = mock_logger
-        
+
         with pytest.raises(SystemExit) as exc_info:
             main()
-        
+
         assert exc_info.value.code == 0
         captured = capsys.readouterr()
         assert "[DRY RUN]" in captured.out
@@ -231,7 +231,7 @@ class TestNetworkErrorHandling:
     ) -> None:
         """Test main function handling network errors."""
         from run_bitcoin_tests.network_utils import NetworkError
-        
+
         mock_config = MagicMock()
         mock_config.dry_run = False
         mock_config.quiet = False
@@ -240,15 +240,15 @@ class TestNetworkErrorHandling:
         mock_config.logging.file = None
         mock_config.docker.keep_containers = False
         mock_load_config.return_value = mock_config
-        
+
         mock_logger = MagicMock()
         mock_setup_logging.return_value = mock_logger
-        
+
         mock_check.side_effect = NetworkError("Network connection failed")
-        
+
         with pytest.raises(SystemExit) as exc_info:
             main()
-        
+
         assert exc_info.value.code == 1
         captured = capsys.readouterr()
         assert "[NETWORK ERROR]" in captured.out
@@ -276,7 +276,7 @@ class TestNetworkErrorHandling:
     ) -> None:
         """Test main function handling repository errors."""
         from run_bitcoin_tests.network_utils import RepositoryError
-        
+
         mock_config = MagicMock()
         mock_config.dry_run = False
         mock_config.quiet = False
@@ -285,15 +285,15 @@ class TestNetworkErrorHandling:
         mock_config.logging.file = None
         mock_config.docker.keep_containers = False
         mock_load_config.return_value = mock_config
-        
+
         mock_logger = MagicMock()
         mock_setup_logging.return_value = mock_logger
-        
+
         mock_check.side_effect = RuntimeError("Repository not found")
-        
+
         with pytest.raises(SystemExit) as exc_info:
             main()
-        
+
         assert exc_info.value.code == 1
         captured = capsys.readouterr()
         assert "[REPO ERROR]" in captured.out

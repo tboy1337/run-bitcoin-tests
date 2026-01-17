@@ -407,7 +407,7 @@ class TestIntegrationWithConfig:
         # Create a fresh ConfigManager to avoid state from previous tests
         from run_bitcoin_tests.config import ConfigManager
         manager = ConfigManager()
-        
+
         # Verify defaults
         assert manager.config.test.test_suite == "both"
         assert manager.config.test.python_test_scope == "standard"
