@@ -298,6 +298,15 @@ class ConfigManager:
         self.config.test.python_test_args = str(
             self._get_env_var("BTC_PYTHON_TEST_ARGS", self.config.test.python_test_args)
         )
+        exclude_tests_result = self._get_env_var(
+            "BTC_EXCLUDE_PYTHON_TESTS", self.config.test.exclude_python_tests, list
+        )
+        if isinstance(exclude_tests_result, list):
+            self.config.test.exclude_python_tests = exclude_tests_result
+        elif isinstance(exclude_tests_result, str) and exclude_tests_result:
+            self.config.test.exclude_python_tests = [
+                item.strip() for item in exclude_tests_result.split(",") if item.strip()
+            ]
 
         # Logging settings
         self.config.logging.level = str(
@@ -341,6 +350,10 @@ class ConfigManager:
         if hasattr(args, "log_level") and args.log_level:
             self.config.logging.level = args.log_level
 
+        # Application settings
+        if hasattr(args, "dry_run") and args.dry_run:
+            self.config.dry_run = True
+
         # Performance settings
         if hasattr(args, "no_cache") and args.no_cache:
             self.config.network.use_git_cache = False
@@ -372,7 +385,7 @@ class ConfigManager:
     # Type overloads removed due to complexity - using Union type with explicit casts instead
     # This is a pragmatic choice given the variety of types handled
 
-    def _get_env_var(
+    def _get_env_var(  # pylint: disable=too-many-return-statements
         self,
         name: str,
         default: Union[bool, int, float, str, List[str], None],
@@ -382,6 +395,14 @@ class ConfigManager:
         value = os.environ.get(name)
         if value is None:
             return default
+
+        # Handle empty strings - return default for numeric types, empty string for str
+        if value == "":
+            if var_type in (int, float):
+                return default
+            if var_type == list:
+                return []
+            return value
 
         # Cache the parsed value
         cache_key = f"{name}:{value}:{var_type.__name__}"
@@ -398,7 +419,7 @@ class ConfigManager:
                 elif lower_value in ("false", "0", "no", "off"):
                     parsed = False
                 else:
-                    return default
+                    parsed = default  # type: ignore[assignment]
             elif var_type == int:
                 parsed = int(value)
             elif var_type == float:
@@ -555,9 +576,15 @@ class ConfigManager:
         # Test settings
         lines.extend(
             [
+                f"BTC_TEST_SUITE={self.config.test.test_suite}",
                 f"BTC_TEST_TIMEOUT={self.config.test.timeout}",
                 f"BTC_TEST_PARALLEL={self.config.test.parallel}",
                 f"BTC_TEST_JOBS={self.config.test.parallel_jobs or ''}",
+                f"BTC_PYTHON_TEST_SCOPE={self.config.test.python_test_scope}",
+                f"BTC_PYTHON_TEST_JOBS={self.config.test.python_test_jobs}",
+                f"BTC_PYTHON_TEST_ARGS={self.config.test.python_test_args}",
+                f"BTC_CPP_TEST_ARGS={self.config.test.cpp_test_args}",
+                f"BTC_EXCLUDE_PYTHON_TESTS={','.join(self.config.test.exclude_python_tests)}",
                 "",
             ]
         )
