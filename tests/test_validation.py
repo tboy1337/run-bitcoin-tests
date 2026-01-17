@@ -3,11 +3,11 @@
 import pytest
 
 from run_bitcoin_tests.validation import (
+    ValidationError,
+    sanitize_command_args,
     validate_branch_name,
     validate_file_path,
     validate_git_url,
-    sanitize_command_args,
-    ValidationError,
 )
 
 

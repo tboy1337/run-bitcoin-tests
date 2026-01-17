@@ -8,22 +8,22 @@ from unittest.mock import Mock, patch
 import pytest
 
 from run_bitcoin_tests.network_utils import (
-    diagnose_network_connectivity,
-    run_git_command_with_retry,
-    clone_bitcoin_repo_enhanced,
-    get_git_cache,
-    GitCache,
-    _is_network_error,
-    _is_ssl_error,
-    _is_authentication_error,
-    _is_repository_error,
-    _is_disk_space_error,
-    ConnectionError,
-    SSLError,
     AuthenticationError,
-    RepositoryError,
+    ConnectionError,
     DiskSpaceError,
+    GitCache,
+    RepositoryError,
+    SSLError,
     TimeoutError,
+    _is_authentication_error,
+    _is_disk_space_error,
+    _is_network_error,
+    _is_repository_error,
+    _is_ssl_error,
+    clone_bitcoin_repo_enhanced,
+    diagnose_network_connectivity,
+    get_git_cache,
+    run_git_command_with_retry,
 )
 
 
@@ -79,11 +79,7 @@ class TestRunGitCommandWithRetry:
         mock_result.stderr = ""
         mock_run.return_value = mock_result
 
-        result = run_git_command_with_retry(
-            ["git", "status"],
-            "Test command",
-            max_retries=1
-        )
+        result = run_git_command_with_retry(["git", "status"], "Test command", max_retries=1)
 
         assert result == mock_result
         mock_run.assert_called_once()
@@ -109,7 +105,7 @@ class TestRunGitCommandWithRetry:
             ["git", "clone", "repo"],
             "Clone repository",
             max_retries=2,
-            retry_delay=0  # No delay for testing
+            retry_delay=0,  # No delay for testing
         )
 
         assert result == mock_result_success
@@ -125,10 +121,7 @@ class TestRunGitCommandWithRetry:
 
         with pytest.raises(ConnectionError):
             run_git_command_with_retry(
-                ["git", "clone", "repo"],
-                "Clone repository",
-                max_retries=2,
-                retry_delay=0
+                ["git", "clone", "repo"], "Clone repository", max_retries=2, retry_delay=0
             )
 
         assert mock_run.call_count == 2  # Should retry once
@@ -142,11 +135,7 @@ class TestRunGitCommandWithRetry:
         mock_run.return_value = mock_result
 
         with pytest.raises(SSLError):
-            run_git_command_with_retry(
-                ["git", "clone", "repo"],
-                "Clone repository",
-                max_retries=1
-            )
+            run_git_command_with_retry(["git", "clone", "repo"], "Clone repository", max_retries=1)
 
     @patch("subprocess.run")
     def test_authentication_error(self, mock_run):
@@ -157,11 +146,7 @@ class TestRunGitCommandWithRetry:
         mock_run.return_value = mock_result
 
         with pytest.raises(AuthenticationError):
-            run_git_command_with_retry(
-                ["git", "clone", "repo"],
-                "Clone repository",
-                max_retries=1
-            )
+            run_git_command_with_retry(["git", "clone", "repo"], "Clone repository", max_retries=1)
 
     @patch("subprocess.run")
     def test_repository_error(self, mock_run):
@@ -172,11 +157,7 @@ class TestRunGitCommandWithRetry:
         mock_run.return_value = mock_result
 
         with pytest.raises(RepositoryError):
-            run_git_command_with_retry(
-                ["git", "clone", "repo"],
-                "Clone repository",
-                max_retries=1
-            )
+            run_git_command_with_retry(["git", "clone", "repo"], "Clone repository", max_retries=1)
 
     @patch("subprocess.run")
     def test_disk_space_error(self, mock_run):
@@ -187,11 +168,7 @@ class TestRunGitCommandWithRetry:
         mock_run.return_value = mock_result
 
         with pytest.raises(DiskSpaceError):
-            run_git_command_with_retry(
-                ["git", "clone", "repo"],
-                "Clone repository",
-                max_retries=1
-            )
+            run_git_command_with_retry(["git", "clone", "repo"], "Clone repository", max_retries=1)
 
     @patch("subprocess.run")
     def test_timeout_error(self, mock_run):
@@ -200,10 +177,7 @@ class TestRunGitCommandWithRetry:
 
         with pytest.raises(TimeoutError):
             run_git_command_with_retry(
-                ["git", "clone", "repo"],
-                "Clone repository",
-                max_retries=1,
-                timeout=300
+                ["git", "clone", "repo"], "Clone repository", max_retries=1, timeout=300
             )
 
 
@@ -220,7 +194,9 @@ class TestCloneBitcoinRepoEnhanced:
 
     @patch("run_bitcoin_tests.network_utils.run_git_command_with_retry")
     @patch("run_bitcoin_tests.network_utils.diagnose_network_connectivity")
-    @patch("run_bitcoin_tests.network_utils.print_colored")  # Mock print_colored to avoid encoding issues
+    @patch(
+        "run_bitcoin_tests.network_utils.print_colored"
+    )  # Mock print_colored to avoid encoding issues
     def test_successful_clone(self, mock_print_colored, mock_diagnose, mock_run_git):
         """Test successful repository cloning."""
         mock_diagnose.return_value = ["Network connectivity working"]  # Avoid Unicode chars
@@ -229,7 +205,9 @@ class TestCloneBitcoinRepoEnhanced:
         mock_run_git.return_value = mock_result
 
         with patch("pathlib.Path.exists", return_value=False):
-            clone_bitcoin_repo_enhanced("https://github.com/bitcoin/bitcoin", "master", "test_bitcoin")
+            clone_bitcoin_repo_enhanced(
+                "https://github.com/bitcoin/bitcoin", "master", "test_bitcoin"
+            )
 
         mock_run_git.assert_called_once()
         # Verify that run_git_command_with_retry was called (detailed argument checking
@@ -282,6 +260,7 @@ class TestGitCache:
 
         # Use Path comparison to handle platform differences
         from pathlib import Path
+
         assert instance.cache_dir == Path("/tmp/custom")
         assert instance.max_cache_size_gb == 5.0
 
@@ -292,6 +271,7 @@ class TestGitCache:
 
             # Use Path comparison to handle platform differences
             from pathlib import Path
+
             assert cache.cache_dir == Path("/tmp/test")
             assert cache.max_cache_size_gb == 2.0
             assert cache.cache_metadata_file.name == "cache_metadata.json"
@@ -330,7 +310,9 @@ class TestGitCache:
     @patch("json.load", side_effect=json.JSONDecodeError("JSON error", "", 0))
     @patch("logging.warning")
     @patch("pathlib.Path.mkdir")  # Prevent directory creation during test
-    def test_load_metadata_json_error(self, mock_mkdir, mock_logging_warning, mock_json_load, mock_open, mock_exists):
+    def test_load_metadata_json_error(
+        self, mock_mkdir, mock_logging_warning, mock_json_load, mock_open, mock_exists
+    ):
         """Test loading metadata with JSON error."""
         mock_exists.return_value = True
 
@@ -348,8 +330,7 @@ class TestGitCache:
     @patch("pathlib.Path.mkdir")  # Prevent directory creation during test
     def test_save_metadata(self, mock_mkdir, mock_logging_warning):
         """Test saving metadata."""
-        with patch("builtins.open") as mock_open, \
-             patch("json.dump") as mock_json_dump:
+        with patch("builtins.open") as mock_open, patch("json.dump") as mock_json_dump:
 
             # Create cache without calling constructor's _load_metadata
             cache = object.__new__(GitCache)
@@ -362,7 +343,9 @@ class TestGitCache:
             cache._save_metadata()
 
             mock_open.assert_called_once()
-            mock_json_dump.assert_called_once_with({"test": "data"}, mock_open.return_value.__enter__(), indent=2)
+            mock_json_dump.assert_called_once_with(
+                {"test": "data"}, mock_open.return_value.__enter__(), indent=2
+            )
 
     @patch("logging.warning")
     @patch("builtins.open", side_effect=IOError("Write error"))
@@ -394,6 +377,7 @@ class TestGetGitCache:
 
         # Reset global cache
         import run_bitcoin_tests.network_utils as nu
+
         nu._git_cache = None
 
         result = get_git_cache()
@@ -409,6 +393,7 @@ class TestGetGitCache:
 
         # Reset global cache
         import run_bitcoin_tests.network_utils as nu
+
         nu._git_cache = None
 
         result = get_git_cache(cache_dir="/tmp/custom", max_cache_size_gb=5.0)
@@ -433,7 +418,7 @@ class TestErrorDetectionFunctions:
             "Failed to connect to github.com",
             "Network error occurred",
             "Transfer closed with outstanding read data remaining",
-            "The remote end hung up unexpectedly"
+            "The remote end hung up unexpectedly",
         ]
 
         for error in network_errors:
@@ -445,7 +430,7 @@ class TestErrorDetectionFunctions:
             "Repository not found",
             "Authentication failed",
             "Disk space insufficient",
-            "Permission denied"
+            "Permission denied",
         ]
 
         for error in non_network_errors:
@@ -458,7 +443,7 @@ class TestErrorDetectionFunctions:
             "SSL verification error",
             "TLS handshake failed",
             "Certificate verify failed",
-            "Self signed certificate in certificate chain"
+            "Self signed certificate in certificate chain",
         ]
 
         for error in ssl_errors:
@@ -466,11 +451,7 @@ class TestErrorDetectionFunctions:
 
     def test_is_ssl_error_false(self):
         """Test _is_ssl_error returns False for non-SSL errors."""
-        non_ssl_errors = [
-            "Repository not found",
-            "Connection refused",
-            "Disk space insufficient"
-        ]
+        non_ssl_errors = ["Repository not found", "Connection refused", "Disk space insufficient"]
 
         for error in non_ssl_errors:
             assert not _is_ssl_error(error), f"Should not detect '{error}' as SSL error"
@@ -483,7 +464,7 @@ class TestErrorDetectionFunctions:
             "Access denied",
             "not authorized",
             "Invalid credentials",
-            "remote: invalid username or password"
+            "remote: invalid username or password",
         ]
 
         for error in auth_errors:
@@ -495,7 +476,7 @@ class TestErrorDetectionFunctions:
             "Network is unreachable",
             "SSL certificate verification failed",
             "Disk space insufficient",
-            "fatal: remote error: upload denied"
+            "fatal: remote error: upload denied",
         ]
 
         for error in non_auth_errors:
@@ -510,7 +491,7 @@ class TestErrorDetectionFunctions:
             "remote: permission to user/repo denied",
             "remote: the repository you are trying to access does not exist",
             "fatal: remote error: access denied or repository not exported",
-            "fatal: could not read from remote repository"
+            "fatal: could not read from remote repository",
         ]
 
         for error in repo_errors:
@@ -521,11 +502,13 @@ class TestErrorDetectionFunctions:
         non_repo_errors = [
             "Network is unreachable",
             "Authentication failed for user",
-            "Disk space insufficient"
+            "Disk space insufficient",
         ]
 
         for error in non_repo_errors:
-            assert not _is_repository_error(error), f"Should not detect '{error}' as repository error"
+            assert not _is_repository_error(
+                error
+            ), f"Should not detect '{error}' as repository error"
 
     def test_is_disk_space_error_true(self):
         """Test _is_disk_space_error returns True for disk space errors."""
@@ -534,7 +517,7 @@ class TestErrorDetectionFunctions:
             "insufficient disk space",
             "Out of disk space",
             "disk quota exceeded",
-            "Disk full"
+            "Disk full",
         ]
 
         for error in disk_errors:
@@ -545,8 +528,10 @@ class TestErrorDetectionFunctions:
         non_disk_errors = [
             "Network is unreachable",
             "Authentication failed",
-            "Repository not found"
+            "Repository not found",
         ]
 
         for error in non_disk_errors:
-            assert not _is_disk_space_error(error), f"Should not detect '{error}' as disk space error"
+            assert not _is_disk_space_error(
+                error
+            ), f"Should not detect '{error}' as disk space error"

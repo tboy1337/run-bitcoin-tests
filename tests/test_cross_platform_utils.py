@@ -14,13 +14,13 @@ from unittest.mock import Mock, patch
 import pytest
 
 from run_bitcoin_tests.cross_platform_utils import (
-    PlatformInfo,
     CrossPlatformCommand,
     PathUtils,
-    get_platform_info,
+    PlatformInfo,
     get_cross_platform_command,
     get_path_utils,
-    is_cross_platform_compatible
+    get_platform_info,
+    is_cross_platform_compatible,
 )
 
 
@@ -32,19 +32,19 @@ class TestPlatformInfo:
         info = PlatformInfo()
 
         # Check that platform detection works
-        assert hasattr(info, 'system')
-        assert hasattr(info, 'is_windows')
-        assert hasattr(info, 'is_linux')
-        assert hasattr(info, 'is_macos')
-        assert hasattr(info, 'is_unix')
+        assert hasattr(info, "system")
+        assert hasattr(info, "is_windows")
+        assert hasattr(info, "is_linux")
+        assert hasattr(info, "is_macos")
+        assert hasattr(info, "is_unix")
 
         # Check that exactly one platform flag is True
         platform_flags = [info.is_windows, info.is_linux, info.is_macos]
         assert sum(platform_flags) == 1  # Exactly one should be True
 
         # Check architecture detection
-        assert hasattr(info, 'is_x86')
-        assert hasattr(info, 'is_arm')
+        assert hasattr(info, "is_x86")
+        assert hasattr(info, "is_arm")
 
     def test_command_detection(self):
         """Test that command availability detection works."""
@@ -62,9 +62,9 @@ class TestPlatformInfo:
         separator = info.get_path_separator()
 
         if info.is_windows:
-            assert separator == ';'
+            assert separator == ";"
         else:
-            assert separator == ':'
+            assert separator == ":"
 
     def test_executable_extension(self):
         """Test platform-specific executable extension."""
@@ -72,9 +72,9 @@ class TestPlatformInfo:
         ext = info.get_executable_extension()
 
         if info.is_windows:
-            assert ext == '.exe'
+            assert ext == ".exe"
         else:
-            assert ext == ''
+            assert ext == ""
 
     def test_unicode_support(self):
         """Test Unicode support detection."""
@@ -104,62 +104,64 @@ class TestCrossPlatformCommand:
 
     def test_ping_command_windows(self):
         """Test ping command generation for Windows."""
-        with patch('run_bitcoin_tests.cross_platform_utils.PlatformInfo') as mock_platform:
+        with patch("run_bitcoin_tests.cross_platform_utils.PlatformInfo") as mock_platform:
             mock_platform.return_value.is_windows = True
             cmd = CrossPlatformCommand()
-            ping_cmd = cmd.get_ping_command('example.com', 5)
-            assert ping_cmd == ['ping', '-n', '1', '-w', '5000', 'example.com']
+            ping_cmd = cmd.get_ping_command("example.com", 5)
+            assert ping_cmd == ["ping", "-n", "1", "-w", "5000", "example.com"]
 
     def test_ping_command_unix(self):
         """Test ping command generation for Unix-like systems."""
-        with patch('run_bitcoin_tests.cross_platform_utils.PlatformInfo') as mock_platform:
+        with patch("run_bitcoin_tests.cross_platform_utils.PlatformInfo") as mock_platform:
             mock_platform.return_value.is_windows = False
             cmd = CrossPlatformCommand()
-            ping_cmd = cmd.get_ping_command('example.com', 3)
-            assert ping_cmd == ['ping', '-c', '1', '-W', '3', 'example.com']
+            ping_cmd = cmd.get_ping_command("example.com", 3)
+            assert ping_cmd == ["ping", "-c", "1", "-W", "3", "example.com"]
 
-    @patch('run_bitcoin_tests.cross_platform_utils.CrossPlatformCommand._check_command_exists')
+    @patch("run_bitcoin_tests.cross_platform_utils.CrossPlatformCommand._check_command_exists")
     def test_docker_compose_command_preference(self, mock_check):
         """Test docker compose command preference."""
         cmd = CrossPlatformCommand()
 
         # Test preference for 'docker compose'
-        mock_check.side_effect = lambda c: 'docker compose version' in ' '.join(c)
+        mock_check.side_effect = lambda c: "docker compose version" in " ".join(c)
         result = cmd.get_docker_compose_command()
-        assert result == ['docker', 'compose']
+        assert result == ["docker", "compose"]
 
         # Test fallback to 'docker-compose'
-        mock_check.side_effect = lambda c: 'docker-compose version' in ' '.join(c)
+        mock_check.side_effect = lambda c: "docker-compose version" in " ".join(c)
         result = cmd.get_docker_compose_command()
-        assert result == ['docker-compose']
+        assert result == ["docker-compose"]
 
     def test_docker_compose_command_not_found(self):
         """Test docker compose command when neither is available."""
         cmd = CrossPlatformCommand()
 
-        with patch.object(cmd, '_check_command_exists', return_value=False):
-            with pytest.raises(FileNotFoundError, match="Neither 'docker compose' nor 'docker-compose' found"):
+        with patch.object(cmd, "_check_command_exists", return_value=False):
+            with pytest.raises(
+                FileNotFoundError, match="Neither 'docker compose' nor 'docker-compose' found"
+            ):
                 cmd.get_docker_compose_command()
 
     def test_normalize_command_args_windows(self):
         """Test command argument normalization on Windows."""
-        with patch('run_bitcoin_tests.cross_platform_utils.PlatformInfo') as mock_platform:
+        with patch("run_bitcoin_tests.cross_platform_utils.PlatformInfo") as mock_platform:
             mock_platform.return_value.is_windows = True
             cmd = CrossPlatformCommand()
 
-            args = ['git', 'clone', 'https://example.com/repo', '--branch', 'main']
+            args = ["git", "clone", "https://example.com/repo", "--branch", "main"]
             normalized = cmd.normalize_command_args(args)
             # On Windows, paths get converted to backslashes (but URLs should be preserved)
-            expected = ['git', 'clone', 'https://example.com/repo', '--branch', 'main']
+            expected = ["git", "clone", "https://example.com/repo", "--branch", "main"]
             assert normalized == expected
 
     def test_normalize_command_args_unix(self):
         """Test command argument normalization on Unix."""
-        with patch('run_bitcoin_tests.cross_platform_utils.PlatformInfo') as mock_platform:
+        with patch("run_bitcoin_tests.cross_platform_utils.PlatformInfo") as mock_platform:
             mock_platform.return_value.is_windows = False
             cmd = CrossPlatformCommand()
 
-            args = ['git', 'clone', 'https://example.com/repo']
+            args = ["git", "clone", "https://example.com/repo"]
             normalized = cmd.normalize_command_args(args)
             assert normalized == args  # Should not change on Unix
 
@@ -175,6 +177,7 @@ class TestPathUtils:
     def teardown_method(self):
         """Clean up test fixtures."""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_normalize_path(self):
@@ -185,7 +188,7 @@ class TestPathUtils:
         assert isinstance(normalized, Path)
 
         # Test with user expansion (if supported)
-        if os.name != 'nt':  # Skip on Windows where ~ expansion might not work
+        if os.name != "nt":  # Skip on Windows where ~ expansion might not work
             home_path = Path("~")
             normalized_home = self.path_utils.normalize_path(home_path)
             assert isinstance(normalized_home, Path)
@@ -214,7 +217,7 @@ class TestPathUtils:
         assert not self.path_utils.is_safe_path(unsafe_path, base_dir)
 
         # Absolute paths outside base
-        if os.name != 'nt':  # Unix-like systems
+        if os.name != "nt":  # Unix-like systems
             outside_abs = Path("/tmp/outside.txt")
             assert not self.path_utils.is_safe_path(outside_abs, base_dir)
 
@@ -227,6 +230,7 @@ class TestPathUtils:
         relative = self.path_utils.get_relative_path(sub_path, base_dir)
         # Use os.path.join for cross-platform path comparison
         import os
+
         expected = os.path.join("sub", "file.txt")
         assert str(relative) == expected
 
@@ -268,8 +272,13 @@ class TestGlobalFunctions:
         results = is_cross_platform_compatible()
 
         required_keys = [
-            'has_docker', 'has_docker_compose', 'has_git', 'has_ping',
-            'supports_unicode', 'python_version_compatible', 'docker_compose_command_available'
+            "has_docker",
+            "has_docker_compose",
+            "has_git",
+            "has_ping",
+            "supports_unicode",
+            "python_version_compatible",
+            "docker_compose_command_available",
         ]
 
         for key in required_keys:
@@ -294,11 +303,11 @@ class TestIntegration:
         """Test a complete cross-platform workflow."""
         # Get platform info
         info = get_platform_info()
-        assert hasattr(info, 'system')
+        assert hasattr(info, "system")
 
         # Get command utilities
         cmd = get_cross_platform_command()
-        ping_cmd = cmd.get_ping_command('localhost')
+        ping_cmd = cmd.get_ping_command("localhost")
         assert isinstance(ping_cmd, list)
         assert len(ping_cmd) > 0
 
@@ -317,7 +326,7 @@ class TestIntegration:
         assert len(compatibility) > 0
 
         # Python version should be compatible (assuming we're running on a supported version)
-        assert compatibility.get('python_version_compatible', False)
+        assert compatibility.get("python_version_compatible", False)
 
     @patch("subprocess.run")
     def test_check_command_timeout(self, mock_run):
@@ -421,7 +430,7 @@ class TestIntegration:
         info.is_windows = False
 
         result = info.get_temp_directory()
-        assert result == Path('/tmp')
+        assert result == Path("/tmp")
 
     def test_get_cache_directory_windows_with_localappdata(self):
         """Test get_cache_directory on Windows with LOCALAPPDATA set."""
@@ -429,9 +438,9 @@ class TestIntegration:
         info.is_windows = True
         info.is_macos = False
 
-        with patch.dict(os.environ, {'LOCALAPPDATA': 'C:\\Users\\Test\\AppData\\Local'}):
+        with patch.dict(os.environ, {"LOCALAPPDATA": "C:\\Users\\Test\\AppData\\Local"}):
             result = info.get_cache_directory()
-            assert result == Path('C:\\Users\\Test\\AppData\\Local\\bitcoin-tests')
+            assert result == Path("C:\\Users\\Test\\AppData\\Local\\bitcoin-tests")
 
     def test_get_cache_directory_windows_without_localappdata(self):
         """Test get_cache_directory on Windows without LOCALAPPDATA."""
@@ -439,10 +448,12 @@ class TestIntegration:
         info.is_windows = True
         info.is_macos = False
 
-        with patch.dict(os.environ, {}, clear=True), \
-             patch('pathlib.Path.home', return_value=Path('C:\\Users\\Test')):
+        with (
+            patch.dict(os.environ, {}, clear=True),
+            patch("pathlib.Path.home", return_value=Path("C:\\Users\\Test")),
+        ):
             result = info.get_cache_directory()
-            assert result == Path('C:\\Users\\Test\\AppData\\Local\\bitcoin-tests')
+            assert result == Path("C:\\Users\\Test\\AppData\\Local\\bitcoin-tests")
 
     def test_get_cache_directory_macos(self):
         """Test get_cache_directory on macOS."""
@@ -450,9 +461,9 @@ class TestIntegration:
         info.is_windows = False
         info.is_macos = True
 
-        with patch('pathlib.Path.home', return_value=Path('/Users/test')):
+        with patch("pathlib.Path.home", return_value=Path("/Users/test")):
             result = info.get_cache_directory()
-            assert result == Path('/Users/test/Library/Caches/bitcoin-tests')
+            assert result == Path("/Users/test/Library/Caches/bitcoin-tests")
 
     def test_get_cache_directory_linux_with_xdg_cache_home(self):
         """Test get_cache_directory on Linux with XDG_CACHE_HOME set."""
@@ -460,9 +471,9 @@ class TestIntegration:
         info.is_windows = False
         info.is_macos = False
 
-        with patch.dict(os.environ, {'XDG_CACHE_HOME': '/home/test/.cache'}):
+        with patch.dict(os.environ, {"XDG_CACHE_HOME": "/home/test/.cache"}):
             result = info.get_cache_directory()
-            assert result == Path('/home/test/.cache/bitcoin-tests')
+            assert result == Path("/home/test/.cache/bitcoin-tests")
 
     def test_get_cache_directory_linux_without_xdg_cache_home(self):
         """Test get_cache_directory on Linux without XDG_CACHE_HOME."""
@@ -470,7 +481,9 @@ class TestIntegration:
         info.is_windows = False
         info.is_macos = False
 
-        with patch.dict(os.environ, {}, clear=True), \
-             patch('pathlib.Path.home', return_value=Path('/home/test')):
+        with (
+            patch.dict(os.environ, {}, clear=True),
+            patch("pathlib.Path.home", return_value=Path("/home/test")),
+        ):
             result = info.get_cache_directory()
-            assert result == Path('/home/test/.cache/bitcoin-tests')
+            assert result == Path("/home/test/.cache/bitcoin-tests")

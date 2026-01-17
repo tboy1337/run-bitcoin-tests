@@ -11,7 +11,7 @@ import shutil
 import tempfile
 import time
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -69,8 +69,8 @@ class TestGitCache:
 
         # Add some metadata
         test_metadata = {
-            'hash1': {'repo_url': 'url1', 'branch': 'branch1', 'cached_at': time.time()},
-            'hash2': {'repo_url': 'url2', 'branch': 'branch2', 'cached_at': time.time()}
+            "hash1": {"repo_url": "url1", "branch": "branch1", "cached_at": time.time()},
+            "hash2": {"repo_url": "url2", "branch": "branch2", "cached_at": time.time()},
         }
         self.cache._metadata = test_metadata
         self.cache._save_metadata()
@@ -94,16 +94,16 @@ class TestGitCache:
         # Create cache directory but no .git
         cache_path.mkdir()
         self.cache._metadata[repo_hash] = {
-            'repo_url': repo_url,
-            'branch': branch,
-            'cached_at': time.time()
+            "repo_url": repo_url,
+            "branch": branch,
+            "cached_at": time.time(),
         }
         self.cache._save_metadata()
 
         result = self.cache.get_cached_repo(repo_url, branch)
         assert result is None
 
-    @patch('run_bitcoin_tests.network_utils.subprocess.run')
+    @patch("run_bitcoin_tests.network_utils.subprocess.run")
     def test_get_cached_repo_valid(self, mock_run):
         """Test getting valid cached repository."""
         # Mock successful git operations
@@ -119,16 +119,16 @@ class TestGitCache:
         (cache_path / ".git").mkdir()
 
         self.cache._metadata[repo_hash] = {
-            'repo_url': repo_url,
-            'branch': branch,
-            'cached_at': time.time()
+            "repo_url": repo_url,
+            "branch": branch,
+            "cached_at": time.time(),
         }
         self.cache._save_metadata()
 
         result = self.cache.get_cached_repo(repo_url, branch)
         assert result == cache_path
 
-    @patch('run_bitcoin_tests.network_utils.shutil.copytree')
+    @patch("run_bitcoin_tests.network_utils.shutil.copytree")
     def test_cache_repo_success(self, mock_copytree):
         """Test successful repository caching."""
         repo_url = "https://github.com/test/repo"
@@ -147,9 +147,9 @@ class TestGitCache:
         assert repo_hash in self.cache._metadata
 
         metadata = self.cache._metadata[repo_hash]
-        assert metadata['repo_url'] == repo_url
-        assert metadata['branch'] == branch
-        assert 'cached_at' in metadata
+        assert metadata["repo_url"] == repo_url
+        assert metadata["branch"] == branch
+        assert "cached_at" in metadata
 
     def test_cache_repo_failure(self):
         """Test repository caching failure."""
@@ -168,13 +168,13 @@ class TestGitCache:
 
             # Create a small fake file
             fake_file = cache_path / "fake_file"
-            with open(fake_file, 'w') as f:
+            with open(fake_file, "w") as f:
                 f.write("x" * 1024)  # 1KB per repo
 
             self.cache._metadata[repo_hash] = {
-                'repo_url': f'url{i}',
-                'branch': f'branch{i}',
-                'cached_at': time.time() - (i * 3600)  # Different ages
+                "repo_url": f"url{i}",
+                "branch": f"branch{i}",
+                "cached_at": time.time() - (i * 3600),  # Different ages
             }
 
         self.cache._save_metadata()
@@ -188,8 +188,13 @@ class TestGitCache:
             self.cache._cleanup_old_cache()
 
             # Should have cleaned up some entries (at least the oldest)
-            remaining_entries = len([d for d in self.cache.cache_dir.iterdir()
-                                   if d.is_dir() and d != self.cache.cache_metadata_file.parent])
+            remaining_entries = len(
+                [
+                    d
+                    for d in self.cache.cache_dir.iterdir()
+                    if d.is_dir() and d != self.cache.cache_metadata_file.parent
+                ]
+            )
             assert remaining_entries < 3  # Should have removed at least one
         finally:
             self.cache.max_cache_size_gb = original_limit
@@ -203,9 +208,9 @@ class TestGitCache:
             cache_path.mkdir()
 
             self.cache._metadata[repo_hash] = {
-                'repo_url': f'url{i}',
-                'branch': f'branch{i}',
-                'cached_at': time.time()
+                "repo_url": f"url{i}",
+                "branch": f"branch{i}",
+                "cached_at": time.time(),
             }
 
         self.cache._save_metadata()
@@ -218,8 +223,11 @@ class TestGitCache:
 
         # Verify cache is cleared
         assert len(self.cache._metadata) == 0
-        remaining_dirs = [d for d in self.cache.cache_dir.iterdir()
-                         if d.is_dir() and d != self.cache.cache_metadata_file.parent]
+        remaining_dirs = [
+            d
+            for d in self.cache.cache_dir.iterdir()
+            if d.is_dir() and d != self.cache.cache_metadata_file.parent
+        ]
         assert len(remaining_dirs) == 0
 
 
@@ -230,6 +238,7 @@ class TestGitCacheSingleton:
         """Test that get_git_cache returns singleton instances."""
         # Clear any existing instance
         import run_bitcoin_tests.network_utils as network_utils
+
         network_utils._git_cache = None
 
         cache1 = get_git_cache()
@@ -246,6 +255,7 @@ class TestGitCacheSingleton:
         with tempfile.TemporaryDirectory() as temp_dir:
             # Reset the global cache for this test
             import run_bitcoin_tests.network_utils as nu
+
             nu._git_cache = None
 
             cache = get_git_cache(cache_dir=temp_dir, max_cache_size_gb=2.0)
@@ -270,11 +280,29 @@ class TestGitCacheIntegration:
 
         # Initialize git repo and create main branch
         import subprocess
+
         subprocess.run(["git", "init"], cwd=self.source_repo, check=True, capture_output=True)
-        subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=self.source_repo, check=True, capture_output=True)
-        subprocess.run(["git", "config", "user.name", "Test User"], cwd=self.source_repo, check=True, capture_output=True)
-        subprocess.run(["git", "add", "README.md"], cwd=self.source_repo, check=True, capture_output=True)
-        subprocess.run(["git", "commit", "-m", "Initial commit"], cwd=self.source_repo, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "config", "user.email", "test@example.com"],
+            cwd=self.source_repo,
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Test User"],
+            cwd=self.source_repo,
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "add", "README.md"], cwd=self.source_repo, check=True, capture_output=True
+        )
+        subprocess.run(
+            ["git", "commit", "-m", "Initial commit"],
+            cwd=self.source_repo,
+            check=True,
+            capture_output=True,
+        )
 
     def teardown_method(self):
         """Clean up integration test fixtures."""
@@ -300,7 +328,9 @@ class TestGitCacheIntegration:
         assert result2.exists()
         assert (result2 / "README.md").exists()
 
-    @pytest.mark.skipif(os.name == 'nt', reason="Git cache integration tests have issues on Windows")
+    @pytest.mark.skipif(
+        os.name == "nt", reason="Git cache integration tests have issues on Windows"
+    )
     def test_cache_validation(self):
         """Test that cached repositories are properly validated."""
         repo_url = "https://github.com/test/repo"
@@ -315,11 +345,13 @@ class TestGitCacheIntegration:
 
         # Simulate corrupted cache (remove .git directory)
         import sys
-        if sys.platform != 'win32':
+
+        if sys.platform != "win32":
             shutil.rmtree(cached / ".git")
         else:
             # On Windows, just rename/remove the directory to avoid permission issues
             import os
+
             corrupted_git = cached / ".git"
             if corrupted_git.exists():
                 backup_git = cached / ".git_backup"
@@ -331,7 +363,9 @@ class TestGitCacheIntegration:
         result = self.cache.get_cached_repo(repo_url, branch)
         assert result is None
 
-    @pytest.mark.skipif(os.name == 'nt', reason="Git cache integration tests have issues on Windows")
+    @pytest.mark.skipif(
+        os.name == "nt", reason="Git cache integration tests have issues on Windows"
+    )
     def test_different_branches(self):
         """Test caching different branches separately."""
         repo_url = "https://github.com/test/repo"
@@ -375,7 +409,7 @@ class TestGitCacheErrorHandling:
     def test_corrupted_metadata_file(self):
         """Test handling of corrupted metadata file."""
         # Write invalid JSON to metadata file
-        with open(self.cache.cache_metadata_file, 'w') as f:
+        with open(self.cache.cache_metadata_file, "w") as f:
             f.write("invalid json content")
 
         # Should handle gracefully and return empty metadata
@@ -385,17 +419,17 @@ class TestGitCacheErrorHandling:
     def test_metadata_save_failure(self):
         """Test handling of metadata save failures."""
         # Make cache directory read-only (simulate save failure)
-        with patch.object(self.cache, '_save_metadata', side_effect=OSError("Save failed")):
+        with patch.object(self.cache, "_save_metadata", side_effect=OSError("Save failed")):
             # Should not raise exception
             self.cache.cache_repo("https://test.com/repo", "main", Path("/tmp/nonexistent"))
 
     def test_cache_cleanup_error_handling(self):
         """Test that cache cleanup handles errors gracefully."""
         # Add an entry with invalid path
-        self.cache._metadata['invalid'] = {
-            'repo_url': 'invalid',
-            'branch': 'invalid',
-            'cached_at': time.time()
+        self.cache._metadata["invalid"] = {
+            "repo_url": "invalid",
+            "branch": "invalid",
+            "cached_at": time.time(),
         }
 
         # Should not raise exceptions during cleanup

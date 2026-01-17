@@ -44,8 +44,6 @@ class TestPrintColored:
         assert "test message" in captured.out
 
 
-
-
 class TestRunCommand:
     """Test run_command function."""
 
@@ -60,10 +58,7 @@ class TestRunCommand:
 
         assert result == mock_result
         mock_run.assert_called_once_with(
-            ["echo", "hello"],
-            capture_output=False,
-            text=True,
-            check=False
+            ["echo", "hello"], capture_output=False, text=True, check=False
         )
 
     @patch("subprocess.run")
@@ -96,7 +91,12 @@ class TestCloneBitcoinRepo:
         clone_bitcoin_repo("https://github.com/bitcoin/bitcoin", "master")
 
         # Should call the enhanced clone function
-        mock_clone_enhanced.assert_called_once_with(repo_url="https://github.com/bitcoin/bitcoin", branch="master", target_dir="bitcoin", use_cache=True)
+        mock_clone_enhanced.assert_called_once_with(
+            repo_url="https://github.com/bitcoin/bitcoin",
+            branch="master",
+            target_dir="bitcoin",
+            use_cache=True,
+        )
 
     @patch("run_bitcoin_tests.main.clone_bitcoin_repo_enhanced")
     def test_clone_repo_success(self, mock_clone_enhanced, capsys):
@@ -107,7 +107,12 @@ class TestCloneBitcoinRepo:
         clone_bitcoin_repo("https://github.com/bitcoin/bitcoin", "master")
 
         # Verify the enhanced clone function was called
-        mock_clone_enhanced.assert_called_once_with(repo_url="https://github.com/bitcoin/bitcoin", branch="master", target_dir="bitcoin", use_cache=True)
+        mock_clone_enhanced.assert_called_once_with(
+            repo_url="https://github.com/bitcoin/bitcoin",
+            branch="master",
+            target_dir="bitcoin",
+            use_cache=True,
+        )
 
     @patch("run_bitcoin_tests.main.clone_bitcoin_repo_enhanced")
     def test_clone_repo_failure(self, mock_clone_enhanced, capsys):
@@ -119,7 +124,12 @@ class TestCloneBitcoinRepo:
             clone_bitcoin_repo("https://github.com/bitcoin/bitcoin", "master")
 
         # Verify the enhanced clone function was called
-        mock_clone_enhanced.assert_called_once_with(repo_url="https://github.com/bitcoin/bitcoin", branch="master", target_dir="bitcoin", use_cache=True)
+        mock_clone_enhanced.assert_called_once_with(
+            repo_url="https://github.com/bitcoin/bitcoin",
+            branch="master",
+            target_dir="bitcoin",
+            use_cache=True,
+        )
 
     @patch("run_bitcoin_tests.main.clone_bitcoin_repo_enhanced")
     def test_clone_repo_exception(self, mock_clone_enhanced, capsys):
@@ -131,7 +141,12 @@ class TestCloneBitcoinRepo:
             clone_bitcoin_repo("https://github.com/bitcoin/bitcoin", "master")
 
         # Verify the enhanced clone function was called
-        mock_clone_enhanced.assert_called_once_with(repo_url="https://github.com/bitcoin/bitcoin", branch="master", target_dir="bitcoin", use_cache=True)
+        mock_clone_enhanced.assert_called_once_with(
+            repo_url="https://github.com/bitcoin/bitcoin",
+            branch="master",
+            target_dir="bitcoin",
+            use_cache=True,
+        )
 
 
 class TestCheckPrerequisites:
@@ -140,7 +155,9 @@ class TestCheckPrerequisites:
     @patch("run_bitcoin_tests.main.clone_bitcoin_repo")
     @patch("run_bitcoin_tests.main.get_config")
     @patch("run_bitcoin_tests.main.Path")
-    def test_check_prerequisites_missing_files(self, mock_path, mock_get_config, mock_clone, capsys):
+    def test_check_prerequisites_missing_files(
+        self, mock_path, mock_get_config, mock_clone, capsys
+    ):
         """Test when required files are missing."""
         mock_config = Mock()
         mock_config.docker.compose_file = "docker-compose.yml"
@@ -174,6 +191,7 @@ class TestCheckPrerequisites:
 
         # Mock Path for required files (exist) and CMakeLists.txt (exists)
         call_count = 0
+
         def path_side_effect(path_str):
             nonlocal call_count
             mock_file = Mock()
@@ -194,7 +212,9 @@ class TestCheckPrerequisites:
     @patch("run_bitcoin_tests.main.clone_bitcoin_repo")
     @patch("run_bitcoin_tests.main.get_config")
     @patch("run_bitcoin_tests.main.Path")
-    def test_check_prerequisites_missing_cmake(self, mock_path, mock_get_config, mock_clone, capsys):
+    def test_check_prerequisites_missing_cmake(
+        self, mock_path, mock_get_config, mock_clone, capsys
+    ):
         """Test when CMakeLists.txt is missing after cloning."""
         mock_config = Mock()
         mock_config.docker.compose_file = "docker-compose.yml"
@@ -349,7 +369,10 @@ class TestParseArguments:
 
     def test_parse_arguments_custom(self):
         """Test parsing with custom arguments."""
-        with patch("sys.argv", ["script.py", "-r", "https://github.com/myfork/bitcoin", "-b", "feature-branch"]):
+        with patch(
+            "sys.argv",
+            ["script.py", "-r", "https://github.com/myfork/bitcoin", "-b", "feature-branch"],
+        ):
             args = parse_arguments()
 
             assert args.repo_url == "https://github.com/myfork/bitcoin"
@@ -357,7 +380,16 @@ class TestParseArguments:
 
     def test_parse_arguments_long_options(self):
         """Test parsing with long options."""
-        with patch("sys.argv", ["script.py", "--repo-url", "https://github.com/test/bitcoin", "--branch", "test-branch"]):
+        with patch(
+            "sys.argv",
+            [
+                "script.py",
+                "--repo-url",
+                "https://github.com/test/bitcoin",
+                "--branch",
+                "test-branch",
+            ],
+        ):
             args = parse_arguments()
 
             assert args.repo_url == "https://github.com/test/bitcoin"
@@ -374,8 +406,17 @@ class TestMain:
     @patch("run_bitcoin_tests.main.run_tests")
     @patch("run_bitcoin_tests.main.cleanup_containers")
     @patch("sys.exit")
-    def test_main_success(self, mock_exit, mock_cleanup, mock_run_tests, mock_build,
-                         mock_check_prereqs, mock_parse_args, mock_load_config, capsys):
+    def test_main_success(
+        self,
+        mock_exit,
+        mock_cleanup,
+        mock_run_tests,
+        mock_build,
+        mock_check_prereqs,
+        mock_parse_args,
+        mock_load_config,
+        capsys,
+    ):
         """Test successful main execution."""
         # Setup mocks
         mock_args = Mock()
@@ -412,8 +453,17 @@ class TestMain:
     @patch("run_bitcoin_tests.main.run_tests")
     @patch("run_bitcoin_tests.main.cleanup_containers")
     @patch("sys.exit")
-    def test_main_tests_failure(self, mock_exit, mock_cleanup, mock_run_tests, mock_build,
-                               mock_check_prereqs, mock_parse_args, mock_load_config, capsys):
+    def test_main_tests_failure(
+        self,
+        mock_exit,
+        mock_cleanup,
+        mock_run_tests,
+        mock_build,
+        mock_check_prereqs,
+        mock_parse_args,
+        mock_load_config,
+        capsys,
+    ):
         """Test main execution when tests fail."""
         # Setup mocks
         mock_args = Mock()
@@ -444,8 +494,9 @@ class TestMain:
     @patch("run_bitcoin_tests.main.check_prerequisites")
     @patch("run_bitcoin_tests.main.cleanup_containers")
     @patch("sys.exit")
-    def test_main_keyboard_interrupt(self, mock_exit, mock_cleanup, mock_check_prereqs,
-                                   mock_parse_args, mock_load_config, capsys):
+    def test_main_keyboard_interrupt(
+        self, mock_exit, mock_cleanup, mock_check_prereqs, mock_parse_args, mock_load_config, capsys
+    ):
         """Test main execution with keyboard interrupt."""
         # Setup mocks
         mock_args = Mock()
@@ -471,8 +522,9 @@ class TestMain:
     @patch("run_bitcoin_tests.main.check_prerequisites")
     @patch("run_bitcoin_tests.main.cleanup_containers")
     @patch("sys.exit")
-    def test_main_generic_exception(self, mock_exit, mock_cleanup, mock_check_prereqs,
-                                   mock_parse_args, mock_load_config, capsys):
+    def test_main_generic_exception(
+        self, mock_exit, mock_cleanup, mock_check_prereqs, mock_parse_args, mock_load_config, capsys
+    ):
         """Test main execution with generic exception."""
         # Setup mocks
         mock_args = Mock()

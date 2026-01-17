@@ -4,7 +4,8 @@ import subprocess
 from unittest.mock import Mock, patch
 
 import pytest
-from hypothesis import given, settings, strategies as st, HealthCheck
+from hypothesis import HealthCheck, given, settings
+from hypothesis import strategies as st
 
 from run_bitcoin_tests.main import print_colored, run_command
 from run_bitcoin_tests.validation import ValidationError
@@ -17,7 +18,7 @@ class TestPrintColoredHypothesis:
     @given(
         message=st.text(),
         color=st.sampled_from(["RED", "GREEN", "YELLOW", "CYAN", "WHITE", ""]),
-        bright=st.booleans()
+        bright=st.booleans(),
     )
     def test_print_colored_various_inputs(self, message, color, bright, capsys):
         """Test print_colored with various text inputs, colors, and bright settings."""
@@ -31,10 +32,7 @@ class TestPrintColoredHypothesis:
 class TestRunCommandHypothesis:
     """Property-based tests for run_command function."""
 
-    @given(
-        command=st.lists(st.text(min_size=1), min_size=1, max_size=5),
-        description=st.text()
-    )
+    @given(command=st.lists(st.text(min_size=1), min_size=1, max_size=5), description=st.text())
     def test_run_command_various_commands(self, command, description):
         """Test run_command with various command lists and descriptions."""
         mock_result = Mock()
@@ -44,12 +42,7 @@ class TestRunCommandHypothesis:
             result = run_command(command, description)
 
             assert result == mock_result
-            mock_run.assert_called_once_with(
-                command,
-                capture_output=False,
-                text=True,
-                check=False
-            )
+            mock_run.assert_called_once_with(command, capture_output=False, text=True, check=False)
 
 
 class TestArgumentsHypothesis:
@@ -57,7 +50,9 @@ class TestArgumentsHypothesis:
 
     @given(
         repo_url=st.from_regex(r"https?://[^\s/$.?#].[^\s]*", fullmatch=True),
-        branch=st.text(min_size=1, max_size=50).filter(lambda x: x.strip() == x and len(x) > 0 and not x.startswith('-'))
+        branch=st.text(min_size=1, max_size=50).filter(
+            lambda x: x.strip() == x and len(x) > 0 and not x.startswith("-")
+        ),
     )
     def test_parse_arguments_various_urls_and_branches(self, repo_url, branch):
         """Test argument parsing with various valid URLs and branch names."""
@@ -83,7 +78,7 @@ class TestCloneRepoHypothesis:
 
     @given(
         repo_url=st.from_regex(r"https?://[^\s/$.?#].[^\s]*", fullmatch=True),
-        branch=st.text(min_size=1, max_size=50).filter(lambda x: x.strip() == x and len(x) > 0)
+        branch=st.text(min_size=1, max_size=50).filter(lambda x: x.strip() == x and len(x) > 0),
     )
     def test_clone_bitcoin_repo_various_inputs(self, repo_url, branch):
         """Test clone_bitcoin_repo with various repository URLs and branches."""
@@ -97,7 +92,9 @@ class TestCloneRepoHypothesis:
                 clone_bitcoin_repo(repo_url, branch)
 
                 # Verify the enhanced clone function was called with correct parameters
-                mock_clone_enhanced.assert_called_once_with(repo_url=repo_url, branch=branch, target_dir="bitcoin", use_cache=True)
+                mock_clone_enhanced.assert_called_once_with(
+                    repo_url=repo_url, branch=branch, target_dir="bitcoin", use_cache=True
+                )
             except ValidationError:
                 # Some generated inputs may be invalid, which is expected
                 pass
@@ -108,15 +105,17 @@ class TestPrerequisitesHypothesis:
 
     @given(
         repo_url=st.from_regex(r"https?://[^\s/$.?#].[^\s]*", fullmatch=True),
-        branch=st.text(min_size=1, max_size=50).filter(lambda x: x.strip() == x and len(x) > 0)
+        branch=st.text(min_size=1, max_size=50).filter(lambda x: x.strip() == x and len(x) > 0),
     )
     def test_check_prerequisites_various_inputs(self, repo_url, branch):
         """Test check_prerequisites with various repository URLs and branches."""
         from run_bitcoin_tests.main import check_prerequisites
 
-        with patch("run_bitcoin_tests.main.clone_bitcoin_repo") as mock_clone, \
-             patch("run_bitcoin_tests.main.Path") as mock_path, \
-             patch("run_bitcoin_tests.main.get_config") as mock_get_config:
+        with (
+            patch("run_bitcoin_tests.main.clone_bitcoin_repo") as mock_clone,
+            patch("run_bitcoin_tests.main.Path") as mock_path,
+            patch("run_bitcoin_tests.main.get_config") as mock_get_config,
+        ):
 
             # Mock config
             mock_config = Mock()

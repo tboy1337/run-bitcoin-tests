@@ -22,6 +22,7 @@ def mock_subprocess_run():
 @pytest.fixture
 def mock_path_exists():
     """Mock for Path that simulates all files existing."""
+
     def mock_exists(self):
         return True
 
@@ -32,6 +33,7 @@ def mock_path_exists():
 @pytest.fixture
 def mock_path_not_exists():
     """Mock for Path that simulates no files existing."""
+
     def mock_exists(self):
         return False
 
@@ -45,6 +47,7 @@ def temp_working_directory(tmp_path):
     original_cwd = Path.cwd()
     try:
         import os
+
         os.chdir(tmp_path)
         yield tmp_path
     finally:

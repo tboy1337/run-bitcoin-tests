@@ -79,6 +79,7 @@ def initialize_thread_safety() -> None:
     # Set up signal handlers for clean shutdown (if needed)
     try:
         import signal
+
         signal.signal(signal.SIGTERM, _signal_handler)
         signal.signal(signal.SIGINT, _signal_handler)
     except (OSError, ValueError):
@@ -139,11 +140,9 @@ def _force_remove_container(container_id: str):
     """Force remove a Docker container."""
     try:
         import subprocess
+
         result = subprocess.run(
-            ["docker", "rm", "-f", container_id],
-            capture_output=True,
-            text=True,
-            timeout=30
+            ["docker", "rm", "-f", container_id], capture_output=True, text=True, timeout=30
         )
         if result.returncode == 0:
             logger.debug(f"Force removed container {container_id}")
@@ -157,6 +156,7 @@ def _force_remove_temp_dir(temp_dir: Path):
     """Force remove a temporary directory."""
     try:
         import shutil
+
         shutil.rmtree(temp_dir, ignore_errors=True)
         logger.debug(f"Removed temp directory {temp_dir}")
     except Exception as e:
@@ -307,6 +307,7 @@ def thread_safe_temp_dir(prefix: str = "bitcoin_tests_", suffix: str = ""):
             if temp_dir and temp_dir.exists():
                 try:
                     import shutil
+
                     shutil.rmtree(temp_dir)
                 except Exception:
                     pass
@@ -317,6 +318,7 @@ def thread_safe_temp_dir(prefix: str = "bitcoin_tests_", suffix: str = ""):
                 if temp_dir.exists():
                     try:
                         import shutil
+
                         shutil.rmtree(temp_dir)
                         logger.debug(f"Cleaned up temp directory: {temp_dir}")
                     except Exception as e:
@@ -338,7 +340,7 @@ def exclusive_file_operation(file_path: Path, mode: str = "r", operation: str = 
     """
     with file_system_lock(f"{operation} on {file_path}"):
         try:
-            with open(file_path, mode, encoding='utf-8') as f:
+            with open(file_path, mode, encoding="utf-8") as f:
                 logger.debug(f"Opened file {file_path} for {operation}")
                 yield f
         except Exception as e:
@@ -485,9 +487,9 @@ class ResourceTracker:
         with self._lock:
             for name, resource in self._resources.items():
                 try:
-                    if hasattr(resource, 'cleanup') and callable(resource.cleanup):
+                    if hasattr(resource, "cleanup") and callable(resource.cleanup):
                         resource.cleanup()
-                    elif hasattr(resource, 'close') and callable(resource.close):
+                    elif hasattr(resource, "close") and callable(resource.close):
                         resource.close()
                     logger.debug(f"Cleaned up resource: {name}")
                 except Exception as e:

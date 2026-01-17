@@ -36,7 +36,7 @@ class TestExecutionConfig:
             python_test_jobs=8,
             cpp_test_args="--log_level=all",
             python_test_args="--coverage",
-            exclude_python_tests=["feature_fee_estimation", "rpc_blockchain"]
+            exclude_python_tests=["feature_fee_estimation", "rpc_blockchain"],
         )
         assert config.test_suite == "python"
         assert config.python_test_scope == "quick"
@@ -75,7 +75,7 @@ class TestConfigManagerTestSuite:
             python_jobs=16,
             exclude_test=["test1", "test2"],
             cpp_only=False,
-            python_only=False
+            python_only=False,
         )
         manager.update_from_cli_args(args)
 
@@ -93,7 +93,7 @@ class TestConfigManagerTestSuite:
             python_only=False,
             python_tests=None,
             python_jobs=None,
-            exclude_test=None
+            exclude_test=None,
         )
         manager.update_from_cli_args(args)
 
@@ -108,7 +108,7 @@ class TestConfigManagerTestSuite:
             python_only=True,
             python_tests=None,
             python_jobs=None,
-            exclude_test=None
+            exclude_test=None,
         )
         manager.update_from_cli_args(args)
 
@@ -166,43 +166,55 @@ class TestConfigManagerTestSuite:
 class TestCLIArguments:
     """Test command-line argument parsing for test suite options."""
 
-    @patch('sys.argv', ['run-bitcoin-tests.py', '--test-suite', 'python'])
+    @patch("sys.argv", ["run-bitcoin-tests.py", "--test-suite", "python"])
     def test_parse_test_suite_argument(self) -> None:
         """Test parsing --test-suite argument."""
         args = parse_arguments()
         assert args.test_suite == "python"
 
-    @patch('sys.argv', ['run-bitcoin-tests.py', '--cpp-only'])
+    @patch("sys.argv", ["run-bitcoin-tests.py", "--cpp-only"])
     def test_parse_cpp_only_flag(self) -> None:
         """Test parsing --cpp-only flag."""
         args = parse_arguments()
         assert args.cpp_only is True
 
-    @patch('sys.argv', ['run-bitcoin-tests.py', '--python-only'])
+    @patch("sys.argv", ["run-bitcoin-tests.py", "--python-only"])
     def test_parse_python_only_flag(self) -> None:
         """Test parsing --python-only flag."""
         args = parse_arguments()
         assert args.python_only is True
 
-    @patch('sys.argv', ['run-bitcoin-tests.py', '--python-tests', 'quick'])
+    @patch("sys.argv", ["run-bitcoin-tests.py", "--python-tests", "quick"])
     def test_parse_python_tests_argument(self) -> None:
         """Test parsing --python-tests argument."""
         args = parse_arguments()
         assert args.python_tests == "quick"
 
-    @patch('sys.argv', ['run-bitcoin-tests.py', '--python-jobs', '8'])
+    @patch("sys.argv", ["run-bitcoin-tests.py", "--python-jobs", "8"])
     def test_parse_python_jobs_argument(self) -> None:
         """Test parsing --python-jobs argument."""
         args = parse_arguments()
         assert args.python_jobs == 8
 
-    @patch('sys.argv', ['run-bitcoin-tests.py', '--exclude-test', 'test1', '--exclude-test', 'test2'])
+    @patch(
+        "sys.argv", ["run-bitcoin-tests.py", "--exclude-test", "test1", "--exclude-test", "test2"]
+    )
     def test_parse_exclude_test_argument(self) -> None:
         """Test parsing --exclude-test argument (multiple)."""
         args = parse_arguments()
-        assert args.exclude_test == ['test1', 'test2']
+        assert args.exclude_test == ["test1", "test2"]
 
-    @patch('sys.argv', ['run-bitcoin-tests.py', '--python-only', '--python-tests', 'wallet_basic', '--python-jobs', '16'])
+    @patch(
+        "sys.argv",
+        [
+            "run-bitcoin-tests.py",
+            "--python-only",
+            "--python-tests",
+            "wallet_basic",
+            "--python-jobs",
+            "16",
+        ],
+    )
     def test_parse_combined_python_arguments(self) -> None:
         """Test parsing multiple Python test arguments together."""
         args = parse_arguments()
@@ -214,14 +226,11 @@ class TestCLIArguments:
 class TestTestExecution:
     """Test test execution logic with different test suites."""
 
-    @patch('run_bitcoin_tests.main.run_command')
-    @patch('run_bitcoin_tests.main.get_config')
-    @patch('run_bitcoin_tests.main.docker_container_lock')
+    @patch("run_bitcoin_tests.main.run_command")
+    @patch("run_bitcoin_tests.main.get_config")
+    @patch("run_bitcoin_tests.main.docker_container_lock")
     def test_run_tests_both_suites(
-        self,
-        mock_lock: Mock,
-        mock_get_config: Mock,
-        mock_run_command: Mock
+        self, mock_lock: Mock, mock_get_config: Mock, mock_run_command: Mock
     ) -> None:
         """Test running both test suites."""
         from run_bitcoin_tests.main import run_tests
@@ -256,14 +265,11 @@ class TestTestExecution:
         call_args = mock_run_command.call_args[0][0]
         assert any("TEST_SUITE=both" in str(arg) for arg in call_args)
 
-    @patch('run_bitcoin_tests.main.run_command')
-    @patch('run_bitcoin_tests.main.get_config')
-    @patch('run_bitcoin_tests.main.docker_container_lock')
+    @patch("run_bitcoin_tests.main.run_command")
+    @patch("run_bitcoin_tests.main.get_config")
+    @patch("run_bitcoin_tests.main.docker_container_lock")
     def test_run_tests_cpp_only(
-        self,
-        mock_lock: Mock,
-        mock_get_config: Mock,
-        mock_run_command: Mock
+        self, mock_lock: Mock, mock_get_config: Mock, mock_run_command: Mock
     ) -> None:
         """Test running C++ tests only."""
         from run_bitcoin_tests.main import run_tests
@@ -297,14 +303,11 @@ class TestTestExecution:
         call_args = mock_run_command.call_args[0][0]
         assert any("TEST_SUITE=cpp" in str(arg) for arg in call_args)
 
-    @patch('run_bitcoin_tests.main.run_command')
-    @patch('run_bitcoin_tests.main.get_config')
-    @patch('run_bitcoin_tests.main.docker_container_lock')
+    @patch("run_bitcoin_tests.main.run_command")
+    @patch("run_bitcoin_tests.main.get_config")
+    @patch("run_bitcoin_tests.main.docker_container_lock")
     def test_run_tests_python_only(
-        self,
-        mock_lock: Mock,
-        mock_get_config: Mock,
-        mock_run_command: Mock
+        self, mock_lock: Mock, mock_get_config: Mock, mock_run_command: Mock
     ) -> None:
         """Test running Python tests only."""
         from run_bitcoin_tests.main import run_tests
@@ -340,14 +343,11 @@ class TestTestExecution:
         assert any("PYTHON_TEST_SCOPE=quick" in str(arg) for arg in call_args)
         assert any("PYTHON_TEST_JOBS=8" in str(arg) for arg in call_args)
 
-    @patch('run_bitcoin_tests.main.run_command')
-    @patch('run_bitcoin_tests.main.get_config')
-    @patch('run_bitcoin_tests.main.docker_container_lock')
+    @patch("run_bitcoin_tests.main.run_command")
+    @patch("run_bitcoin_tests.main.get_config")
+    @patch("run_bitcoin_tests.main.docker_container_lock")
     def test_run_tests_with_exclusions(
-        self,
-        mock_lock: Mock,
-        mock_get_config: Mock,
-        mock_run_command: Mock
+        self, mock_lock: Mock, mock_get_config: Mock, mock_run_command: Mock
     ) -> None:
         """Test running tests with exclusions."""
         from run_bitcoin_tests.main import run_tests
@@ -385,7 +385,7 @@ class TestTestExecution:
 class TestIntegrationWithConfig:
     """Integration tests for configuration and test execution."""
 
-    @patch('sys.argv', ['run-bitcoin-tests.py', '--python-only', '--python-tests', 'wallet_basic'])
+    @patch("sys.argv", ["run-bitcoin-tests.py", "--python-only", "--python-tests", "wallet_basic"])
     def test_full_config_flow_python_only(self) -> None:
         """Test full configuration flow for Python-only tests."""
         args = parse_arguments()
@@ -394,7 +394,7 @@ class TestIntegrationWithConfig:
         assert config.test.test_suite == "python"
         assert config.test.python_test_scope == "wallet_basic"
 
-    @patch('sys.argv', ['run-bitcoin-tests.py', '--cpp-only'])
+    @patch("sys.argv", ["run-bitcoin-tests.py", "--cpp-only"])
     def test_full_config_flow_cpp_only(self) -> None:
         """Test full configuration flow for C++-only tests."""
         args = parse_arguments()
@@ -406,6 +406,7 @@ class TestIntegrationWithConfig:
         """Test full configuration flow with defaults."""
         # Create a fresh ConfigManager to avoid state from previous tests
         from run_bitcoin_tests.config import ConfigManager
+
         manager = ConfigManager()
 
         # Verify defaults

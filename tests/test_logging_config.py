@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from run_bitcoin_tests.logging_config import setup_logging, get_logger
+from run_bitcoin_tests.logging_config import get_logger, setup_logging
 
 
 class TestSetupLogging:
@@ -27,7 +27,9 @@ class TestSetupLogging:
 
         assert logger.level == logging.DEBUG
         # Check that verbose formatter is used
-        console_handler = next((h for h in logger.handlers if isinstance(h, logging.StreamHandler)), None)
+        console_handler = next(
+            (h for h in logger.handlers if isinstance(h, logging.StreamHandler)), None
+        )
         assert console_handler is not None
         formatter = console_handler.formatter
         assert "funcName" in formatter._fmt
@@ -63,7 +65,9 @@ class TestSetupLogging:
             assert len(handlers) >= 2
 
             # Check for rotating file handler
-            file_handler = next((h for h in handlers if isinstance(h, logging.handlers.RotatingFileHandler)), None)
+            file_handler = next(
+                (h for h in handlers if isinstance(h, logging.handlers.RotatingFileHandler)), None
+            )
             assert file_handler is not None
             assert file_handler.maxBytes == 10 * 1024 * 1024  # 10MB
             assert file_handler.backupCount == 5
@@ -102,11 +106,13 @@ class TestSetupLogging:
         """Test that color filter is added to console handler."""
         logger = setup_logging()
 
-        console_handler = next((h for h in logger.handlers if isinstance(h, logging.StreamHandler)), None)
+        console_handler = next(
+            (h for h in logger.handlers if isinstance(h, logging.StreamHandler)), None
+        )
         assert console_handler is not None
 
         # Check for ColorFilter
-        color_filter = next((f for f in console_handler.filters if hasattr(f, 'filter')), None)
+        color_filter = next((f for f in console_handler.filters if hasattr(f, "filter")), None)
         assert color_filter is not None
 
     def test_color_filter_removes_ansi_codes(self):
@@ -114,8 +120,10 @@ class TestSetupLogging:
         from run_bitcoin_tests.logging_config import setup_logging
 
         logger = setup_logging()
-        console_handler = next((h for h in logger.handlers if isinstance(h, logging.StreamHandler)), None)
-        color_filter = next((f for f in console_handler.filters if hasattr(f, 'filter')), None)
+        console_handler = next(
+            (h for h in logger.handlers if isinstance(h, logging.StreamHandler)), None
+        )
+        color_filter = next((f for f in console_handler.filters if hasattr(f, "filter")), None)
 
         # Create a mock log record with ANSI codes
         record = Mock()

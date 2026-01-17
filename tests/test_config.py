@@ -9,15 +9,15 @@ import pytest
 
 from run_bitcoin_tests.config import (
     AppConfig,
-    ConfigManager,
     BitcoinConfig,
     BuildConfig,
+    ConfigManager,
     DockerConfig,
+    ExecutionConfig,
     LoggingConfig,
     NetworkConfig,
     RepositoryConfig,
     SecurityConfig,
-    ExecutionConfig,
     get_config,
     load_config,
     reset_config,
@@ -126,7 +126,7 @@ BTC_BUILD_TYPE=Release
 BTC_LOG_LEVEL=WARNING
 """
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.env', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
             f.write(env_content)
             env_file = f.name
 
@@ -134,7 +134,9 @@ BTC_LOG_LEVEL=WARNING
             manager.load_from_env_file(env_file)
 
             # If python-dotenv is not available, the file won't be loaded
-            if hasattr(manager, '_loaded_env_files') and env_file in [str(p) for p in manager._loaded_env_files]:
+            if hasattr(manager, "_loaded_env_files") and env_file in [
+                str(p) for p in manager._loaded_env_files
+            ]:
                 # python-dotenv was available and loaded the file
                 # Now load the environment variables into config
                 manager.load_from_env_vars()
@@ -197,7 +199,7 @@ BTC_LOG_LEVEL=WARNING
         manager.config.repository.url = "https://github.com/save/test"
         manager.config.build.type = "Debug"
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.env', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
             env_file = f.name
 
         try:

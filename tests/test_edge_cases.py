@@ -34,16 +34,11 @@ class TestEdgeCases:
         mock_run.return_value = mock_result
 
         # Test command with spaces, quotes, and special chars
-        command = ['echo', 'hello "world" & test']
+        command = ["echo", 'hello "world" & test']
         result = run_command(command, "Special chars test")
 
         assert result == mock_result
-        mock_run.assert_called_once_with(
-            command,
-            capture_output=False,
-            text=True,
-            check=False
-        )
+        mock_run.assert_called_once_with(command, capture_output=False, text=True, check=False)
 
     @patch("run_bitcoin_tests.main.clone_bitcoin_repo_enhanced")
     def test_clone_repo_with_unicode_branch_name(self, mock_clone_enhanced):
@@ -55,7 +50,12 @@ class TestEdgeCases:
         clone_bitcoin_repo("https://github.com/bitcoin/bitcoin", unicode_branch)
 
         # Verify the enhanced clone function was called with the unicode branch name
-        mock_clone_enhanced.assert_called_once_with(repo_url="https://github.com/bitcoin/bitcoin", branch=unicode_branch, target_dir="bitcoin", use_cache=True)
+        mock_clone_enhanced.assert_called_once_with(
+            repo_url="https://github.com/bitcoin/bitcoin",
+            branch=unicode_branch,
+            target_dir="bitcoin",
+            use_cache=True,
+        )
 
     @patch("run_bitcoin_tests.main.get_config")
     @patch("run_bitcoin_tests.main.clone_bitcoin_repo")
@@ -182,7 +182,16 @@ class TestEnvironmentVariables:
 
         # Should still work with custom compose file
         mock_run_command.assert_called_once_with(
-            ["docker", "compose", "-f", "docker-compose.yml", "build", "--no-cache-filter", "bitcoin-deps"], "Build Docker image"
+            [
+                "docker",
+                "compose",
+                "-f",
+                "docker-compose.yml",
+                "build",
+                "--no-cache-filter",
+                "bitcoin-deps",
+            ],
+            "Build Docker image",
         )
 
 

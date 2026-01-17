@@ -19,8 +19,16 @@ class TestIntegration:
     @patch("run_bitcoin_tests.main.run_tests")
     @patch("run_bitcoin_tests.main.cleanup_containers")
     @patch("sys.exit")
-    def test_full_workflow_success(self, mock_exit, mock_cleanup, mock_run_tests,
-                                  mock_build, mock_check_prereqs, mock_parse_args, capsys):
+    def test_full_workflow_success(
+        self,
+        mock_exit,
+        mock_cleanup,
+        mock_run_tests,
+        mock_build,
+        mock_check_prereqs,
+        mock_parse_args,
+        capsys,
+    ):
         """Test the complete workflow with all functions succeeding."""
         # Setup mocks for successful execution
         mock_args = Mock()
@@ -57,8 +65,16 @@ class TestIntegration:
     @patch("run_bitcoin_tests.main.run_tests")
     @patch("run_bitcoin_tests.main.cleanup_containers")
     @patch("sys.exit")
-    def test_full_workflow_with_custom_args(self, mock_exit, mock_cleanup, mock_run_tests,
-                                          mock_build, mock_check_prereqs, mock_parse_args, capsys):
+    def test_full_workflow_with_custom_args(
+        self,
+        mock_exit,
+        mock_cleanup,
+        mock_run_tests,
+        mock_build,
+        mock_check_prereqs,
+        mock_parse_args,
+        capsys,
+    ):
         """Test the complete workflow with custom repository arguments."""
         # Setup mocks for custom repo
         mock_args = Mock()
@@ -95,7 +111,7 @@ class TestCommandLineInterface:
             [sys.executable, "run-bitcoin-tests.py", "--help"],
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent.parent
+            cwd=Path(__file__).parent.parent,
         )
 
         assert result.returncode == 0
@@ -109,7 +125,7 @@ class TestCommandLineInterface:
             [sys.executable, "-m", "run_bitcoin_tests", "--help"],
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent.parent
+            cwd=Path(__file__).parent.parent,
         )
 
         assert result.returncode == 0
@@ -149,8 +165,7 @@ class TestErrorScenarios:
         # Similar to above - testing the function behavior directly
         from run_bitcoin_tests.main import build_docker_image
 
-        with patch("run_bitcoin_tests.main.run_command") as mock_run, \
-             pytest.raises(SystemExit):
+        with patch("run_bitcoin_tests.main.run_command") as mock_run, pytest.raises(SystemExit):
             mock_result = Mock()
             mock_result.returncode = 1  # Simulate build failure
             mock_run.return_value = mock_result

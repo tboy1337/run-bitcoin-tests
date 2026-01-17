@@ -13,10 +13,7 @@ from typing import Optional
 
 
 def setup_logging(
-    level: str = "INFO",
-    log_file: Optional[str] = None,
-    verbose: bool = False,
-    quiet: bool = False
+    level: str = "INFO", log_file: Optional[str] = None, verbose: bool = False, quiet: bool = False
 ) -> logging.Logger:
     """
     Set up logging configuration for the application.
@@ -52,9 +49,7 @@ def setup_logging(
             "%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s"
         )
     else:
-        formatter = logging.Formatter(
-            "%(asctime)s - %(levelname)s - %(message)s"
-        )
+        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 
     # Console handler
     console_handler = logging.StreamHandler(sys.stdout)
@@ -66,8 +61,9 @@ def setup_logging(
         def filter(self, record):
             # Remove ANSI escape sequences from log messages
             import re
-            if hasattr(record, 'msg') and isinstance(record.msg, str):
-                record.msg = re.sub(r'\x1b\[[0-9;]*m', '', record.msg)
+
+            if hasattr(record, "msg") and isinstance(record.msg, str):
+                record.msg = re.sub(r"\x1b\[[0-9;]*m", "", record.msg)
             return True
 
     console_handler.addFilter(ColorFilter())
@@ -82,9 +78,7 @@ def setup_logging(
 
             # Use rotating file handler to prevent log files from growing too large
             file_handler = logging.handlers.RotatingFileHandler(
-                log_file,
-                maxBytes=10 * 1024 * 1024,  # 10MB
-                backupCount=5
+                log_file, maxBytes=10 * 1024 * 1024, backupCount=5  # 10MB
             )
             file_handler.setLevel(logging.DEBUG)  # Always log debug to file
             file_handler.setFormatter(formatter)
@@ -95,7 +89,9 @@ def setup_logging(
             logger.warning(f"Could not set up file logging: {e}")
 
     # Log the startup
-    logger.info(f"Bitcoin Core Tests Runner started with log level: {logging.getLevelName(log_level)}")
+    logger.info(
+        f"Bitcoin Core Tests Runner started with log level: {logging.getLevelName(log_level)}"
+    )
 
     return logger
 

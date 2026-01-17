@@ -49,13 +49,14 @@ from typing import List
 
 from .config import get_config, load_config
 from .logging_config import setup_logging
-from .network_utils import clone_bitcoin_repo_enhanced, NetworkError
+from .network_utils import NetworkError, clone_bitcoin_repo_enhanced
 from .performance_utils import get_performance_monitor, optimize_system_resources
 from .thread_utils import initialize_thread_safety, resource_tracker
 
 try:
     import colorama
     from colorama import Fore, Style
+
     colorama.init(autoreset=True)
 except ImportError:  # pragma: no cover
     # Fallback if colorama is not available
@@ -108,12 +109,14 @@ def run_command(command: List[str], description: str) -> subprocess.CompletedPro
             command,
             capture_output=False,  # Show output in real-time
             text=True,
-            check=False  # Don't raise exception on non-zero exit
+            check=False,  # Don't raise exception on non-zero exit
         )
         return result
     except FileNotFoundError:
         print_colored(f"[ERROR] Command not found: {command[0]}", Fore.RED)
-        print_colored("Please ensure Docker and Docker Compose are installed and in PATH.", Fore.WHITE)
+        print_colored(
+            "Please ensure Docker and Docker Compose are installed and in PATH.", Fore.WHITE
+        )
         sys.exit(1)
     except Exception as e:
         print_colored(f"[ERROR] Error running command: {e}", Fore.RED)
@@ -153,7 +156,7 @@ def clone_bitcoin_repo(repo_url: str, branch: str) -> None:
             repo_url=repo_url,
             branch=branch,
             target_dir="bitcoin",
-            use_cache=config.network.use_git_cache
+            use_cache=config.network.use_git_cache,
         )
 
         # Log performance metrics
@@ -253,6 +256,7 @@ def build_docker_image() -> None:
     container_name = f"{config.docker.container_name}-build"
     with docker_container_lock(container_name):
         from .cross_platform_utils import get_cross_platform_command
+
         cmd_utils = get_cross_platform_command()
         docker_compose_cmd = cmd_utils.get_docker_compose_command()
 
@@ -268,17 +272,18 @@ def build_docker_image() -> None:
 
         # Enable buildkit for better caching and performance
         import os
-        old_docker_buildkit = os.environ.get('DOCKER_BUILDKIT')
-        os.environ['DOCKER_BUILDKIT'] = '1'
+
+        old_docker_buildkit = os.environ.get("DOCKER_BUILDKIT")
+        os.environ["DOCKER_BUILDKIT"] = "1"
 
         try:
             result = run_command(cmd, "Build Docker image")
         finally:
             # Restore original DOCKER_BUILDKIT setting
             if old_docker_buildkit is not None:
-                os.environ['DOCKER_BUILDKIT'] = old_docker_buildkit
+                os.environ["DOCKER_BUILDKIT"] = old_docker_buildkit
             else:
-                os.environ.pop('DOCKER_BUILDKIT', None)
+                os.environ.pop("DOCKER_BUILDKIT", None)
 
         if result.returncode != 0:
             print_colored("[ERROR] Failed to build Docker image", Fore.RED)
@@ -310,13 +315,14 @@ def run_tests() -> int:
         suite_name = {
             "cpp": "C++ unit tests",
             "python": "Python functional tests",
-            "both": "C++ unit tests and Python functional tests"
+            "both": "C++ unit tests and Python functional tests",
         }.get(test_suite, "tests")
         print_colored(f"Running Bitcoin Core {suite_name}...", Fore.YELLOW)
 
     container_name = f"{config.docker.container_name}-runner"
     with docker_container_lock(container_name):
         from .cross_platform_utils import get_cross_platform_command
+
         cmd_utils = get_cross_platform_command()
         docker_compose_cmd = cmd_utils.get_docker_compose_command()
 
@@ -433,31 +439,23 @@ Configuration:
     BTC_TEST_SUITE=both
     BTC_PYTHON_TEST_SCOPE=standard
     BTC_LOG_LEVEL=INFO
-        """
+        """,
     )
 
     # Repository options
-    parser.add_argument(
-        "-r", "--repo-url",
-        help="Git repository URL to clone Bitcoin from"
-    )
+    parser.add_argument("-r", "--repo-url", help="Git repository URL to clone Bitcoin from")
 
-    parser.add_argument(
-        "-b", "--branch",
-        help="Branch to clone from the repository"
-    )
+    parser.add_argument("-b", "--branch", help="Branch to clone from the repository")
 
     # Build options
     parser.add_argument(
         "--build-type",
         choices=["Debug", "Release", "RelWithDebInfo", "MinSizeRel"],
-        help="CMake build type"
+        help="CMake build type",
     )
 
     parser.add_argument(
-        "--build-jobs",
-        type=int,
-        help="Number of parallel build jobs (0 = auto-detect)"
+        "--build-jobs", type=int, help="Number of parallel build jobs (0 = auto-detect)"
     )
 
     # Test suite options
@@ -465,105 +463,86 @@ Configuration:
         "--test-suite",
         choices=["cpp", "python", "both"],
         default="both",
-        help="Which test suite(s) to run (default: both)"
+        help="Which test suite(s) to run (default: both)",
     )
 
     parser.add_argument(
         "--cpp-only",
         action="store_true",
-        help="Run only C++ unit tests (shortcut for --test-suite cpp)"
+        help="Run only C++ unit tests (shortcut for --test-suite cpp)",
     )
 
     parser.add_argument(
         "--python-only",
         action="store_true",
-        help="Run only Python functional tests (shortcut for --test-suite python)"
+        help="Run only Python functional tests (shortcut for --test-suite python)",
     )
 
     parser.add_argument(
         "--python-tests",
-        help="Python test scope: 'all', 'standard', 'quick', or specific test name(s)"
+        help="Python test scope: 'all', 'standard', 'quick', or specific test name(s)",
     )
 
     parser.add_argument(
-        "--python-jobs",
-        type=int,
-        help="Number of parallel jobs for Python tests (default: 4)"
+        "--python-jobs", type=int, help="Number of parallel jobs for Python tests (default: 4)"
     )
 
     parser.add_argument(
         "--exclude-test",
         action="append",
         dest="exclude_test",
-        help="Exclude specific Python test(s) (can be used multiple times)"
+        help="Exclude specific Python test(s) (can be used multiple times)",
     )
 
     # Docker options
     parser.add_argument(
-        "--keep-containers",
-        action="store_true",
-        help="Keep Docker containers after execution"
+        "--keep-containers", action="store_true", help="Keep Docker containers after execution"
     )
 
     # Logging options
     parser.add_argument(
-        "-v", "--verbose",
-        action="store_true",
-        help="Enable verbose output (DEBUG level logging)"
+        "-v", "--verbose", action="store_true", help="Enable verbose output (DEBUG level logging)"
     )
 
     parser.add_argument(
-        "-q", "--quiet",
-        action="store_true",
-        help="Suppress all output except errors"
+        "-q", "--quiet", action="store_true", help="Suppress all output except errors"
     )
 
-    parser.add_argument(
-        "--log-file",
-        help="Path to log file for detailed logging"
-    )
+    parser.add_argument("--log-file", help="Path to log file for detailed logging")
 
     parser.add_argument(
         "--log-level",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        help="Set logging level"
+        help="Set logging level",
     )
 
     # Configuration options
-    parser.add_argument(
-        "--config",
-        help="Path to .env configuration file to load"
-    )
+    parser.add_argument("--config", help="Path to .env configuration file to load")
 
-    parser.add_argument(
-        "--save-config",
-        help="Save current configuration to .env file"
-    )
+    parser.add_argument("--save-config", help="Save current configuration to .env file")
 
     # Application options
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Show what would be executed without running operations"
+        help="Show what would be executed without running operations",
     )
 
     parser.add_argument(
-        "--show-config",
-        action="store_true",
-        help="Show current configuration and exit"
+        "--show-config", action="store_true", help="Show current configuration and exit"
     )
 
     # Performance options
     parser.add_argument(
         "--no-cache",
         action="store_true",
-        help="Disable Git repository caching for cloning operations"
+        help="Disable Git repository caching for cloning operations",
     )
 
     parser.add_argument(
         "--performance-monitor",
         action="store_true",
-        help="Enable detailed performance monitoring during operations"
+        help="Enable detailed performance monitoring during operations",
     )
 
     args = parser.parse_args()
@@ -571,12 +550,14 @@ Configuration:
     # Handle special cases
     if args.config:
         from .config import config_manager
+
         config_manager.load_from_env_file(args.config)
 
     if args.show_config:
         try:
             config = load_config(args)
             from .config import config_manager
+
             print(config_manager.get_summary())
             sys.exit(0)
         except ValueError as e:
@@ -587,6 +568,7 @@ Configuration:
         try:
             config = load_config(args)
             from .config import config_manager
+
             config_manager.save_to_env_file(args.save_config)
             print_colored(f"Configuration saved to {args.save_config}", Fore.GREEN)
             sys.exit(0)
@@ -638,12 +620,13 @@ def main() -> None:
         level=config.logging.level,
         log_file=config.logging.file,
         verbose=config.verbose,
-        quiet=config.quiet
+        quiet=config.quiet,
     )
 
     print_colored("Bitcoin Core C++ Tests Runner", Fore.CYAN, bright=True)
     if not config.quiet:
         from .config import config_manager
+
         print_colored(config_manager.get_summary(), Fore.WHITE)
         print()
 
@@ -652,13 +635,17 @@ def main() -> None:
         print_colored(f"Started at {start_time.strftime('%Y-%m-%d %H:%M:%S')}", Fore.WHITE)
     logger.info("Starting Bitcoin Core tests runner")
     from .config import config_manager
+
     logger.info(f"Configuration: {config_manager.get_summary().replace(chr(10), ' | ')}")
     if not config.quiet:
         print()
 
     if config.dry_run:
         print_colored("[DRY RUN] Would execute the following operations:", Fore.YELLOW)
-        print_colored(f"  - Clone repository: {config.repository.url} (branch: {config.repository.branch})", Fore.WHITE)
+        print_colored(
+            f"  - Clone repository: {config.repository.url} (branch: {config.repository.branch})",
+            Fore.WHITE,
+        )
         print_colored(f"  - Build type: {config.build.type}", Fore.WHITE)
         print_colored(f"  - Run tests with timeout: {config.test.timeout}s", Fore.WHITE)
         print_colored("[DRY RUN] Exiting without executing operations", Fore.YELLOW)
@@ -716,7 +703,9 @@ def main() -> None:
         elif "repository" in str(e).lower() or "not found" in str(e).lower():
             logger.error(f"Repository error: {e}")
             print_colored(f"[REPO ERROR] {e}", Fore.RED)
-            print_colored("Please verify the repository URL and branch name are correct.", Fore.WHITE)
+            print_colored(
+                "Please verify the repository URL and branch name are correct.", Fore.WHITE
+            )
         else:
             logger.error(f"Unexpected error: {e}")
             print_colored(f"[ERROR] {e}", Fore.RED)

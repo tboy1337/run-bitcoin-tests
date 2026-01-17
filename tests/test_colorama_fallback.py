@@ -49,10 +49,7 @@ except Exception as e:
 
     # Run the test in a subprocess
     result = subprocess.run(
-        [sys.executable, "-c", test_code],
-        capture_output=True,
-        text=True,
-        cwd="."
+        [sys.executable, "-c", test_code], capture_output=True, text=True, cwd="."
     )
 
     assert result.returncode == 0, f"Test failed: {result.stderr}"

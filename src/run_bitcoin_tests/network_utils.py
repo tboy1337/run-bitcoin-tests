@@ -58,13 +58,18 @@ logger = get_logger(__name__)
 
 # Try to import colorama for colored output, fallback to plain text
 try:
-    from .main import print_colored, Fore
+    from .main import Fore, print_colored
 except ImportError:
-    def print_colored(message: str, color: str = "", bright: bool = False) -> None:  # pylint: disable=unused-argument
+
+    def print_colored(
+        message: str, color: str = "", bright: bool = False
+    ) -> None:  # pylint: disable=unused-argument
         """Fallback print_colored when colorama is not available."""
         print(message)
+
     class Fore:  # pylint: disable=too-few-public-methods
         """Fallback Fore class when colorama is not available."""
+
         RED = ""
         GREEN = ""
         YELLOW = ""
@@ -138,7 +143,9 @@ class GitCache:
         self._metadata = self._load_metadata()
 
     @classmethod
-    def get_instance(cls, cache_dir: Optional[str] = None, max_cache_size_gb: float = 10.0) -> 'GitCache':
+    def get_instance(
+        cls, cache_dir: Optional[str] = None, max_cache_size_gb: float = 10.0
+    ) -> "GitCache":
         """Get or create singleton instance of GitCache."""
         if cls._instance is None:
             with cls._lock:
@@ -150,7 +157,7 @@ class GitCache:
         """Load cache metadata from disk."""
         try:
             if self.cache_metadata_file.exists():
-                with open(self.cache_metadata_file, 'r') as f:
+                with open(self.cache_metadata_file, "r") as f:
                     return json.load(f)
         except (json.JSONDecodeError, IOError) as e:
             logging.warning(f"Failed to load cache metadata: {e}")
@@ -161,7 +168,7 @@ class GitCache:
         """Save cache metadata to disk."""
         try:
             with self._metadata_lock:
-                with open(self.cache_metadata_file, 'w') as f:
+                with open(self.cache_metadata_file, "w") as f:
                     json.dump(self._metadata, f, indent=2)
         except IOError as e:
             logging.warning(f"Failed to save cache metadata: {e}")
@@ -186,7 +193,7 @@ class GitCache:
                 if item.is_dir() and item != self.cache_metadata_file.parent:
                     try:
                         # Get directory size (simplified)
-                        size = sum(f.stat().st_size for f in item.rglob('*') if f.is_file())
+                        size = sum(f.stat().st_size for f in item.rglob("*") if f.is_file())
                         total_size += size
                         cache_entries.append((item, size, item.stat().st_mtime))
                     except OSError:
@@ -207,6 +214,7 @@ class GitCache:
 
                     try:
                         import shutil
+
                         shutil.rmtree(cache_path)
                         total_size_gb -= size / (1024**3)
 
@@ -262,7 +270,7 @@ class GitCache:
                     ["git", "show-ref", "--verify", "--quiet", f"refs/heads/{branch}"],
                     cwd=cache_path,
                     capture_output=True,
-                    timeout=10
+                    timeout=10,
                 )
                 if result.returncode != 0:
                     del self._metadata[repo_hash]
@@ -295,18 +303,22 @@ class GitCache:
             # Copy repository to cache
             if cache_path.exists():
                 import shutil
+
                 shutil.rmtree(cache_path)
 
             import shutil
-            shutil.copytree(source_path, cache_path, ignore=shutil.ignore_patterns('*.tmp', '.git/index.lock'))
+
+            shutil.copytree(
+                source_path, cache_path, ignore=shutil.ignore_patterns("*.tmp", ".git/index.lock")
+            )
 
             # Update metadata
             with self._metadata_lock:
                 self._metadata[repo_hash] = {
-                    'repo_url': repo_url,
-                    'branch': branch,
-                    'cached_at': time.time(),
-                    'source_path': str(source_path)
+                    "repo_url": repo_url,
+                    "branch": branch,
+                    "cached_at": time.time(),
+                    "source_path": str(source_path),
                 }
                 self._save_metadata()
 
@@ -323,6 +335,7 @@ class GitCache:
             for item in self.cache_dir.iterdir():
                 if item.is_dir() and item != self.cache_metadata_file.parent:
                     import shutil
+
                     shutil.rmtree(item, ignore_errors=True)
 
             with self._metadata_lock:
@@ -392,20 +405,16 @@ def diagnose_network_connectivity(url: str) -> List[str]:
 
     try:
         parsed = urlparse(url)
-        host = parsed.netloc or parsed.path.split('/')[0]
+        host = parsed.netloc or parsed.path.split("/")[0]
 
         # Test basic connectivity with ping
         try:
             from .cross_platform_utils import get_cross_platform_command
+
             cmd_utils = get_cross_platform_command()
             ping_cmd = cmd_utils.get_ping_command(host, 5)
 
-            result = subprocess.run(
-                ping_cmd,
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
+            result = subprocess.run(ping_cmd, capture_output=True, text=True, timeout=10)
 
             if result.returncode == 0:
                 diagnostics.append(f"[OK] Network connectivity to {host} is working")
@@ -420,16 +429,17 @@ def diagnose_network_connectivity(url: str) -> List[str]:
         # Test DNS resolution
         try:
             import socket
+
             socket.gethostbyname(host)
             diagnostics.append(f"[OK] DNS resolution for {host} is working")
         except socket.gaierror:
             diagnostics.append(f"[FAIL] DNS resolution failed for {host}")
 
         # Test SSL connectivity if HTTPS
-        if url.startswith('https://'):
+        if url.startswith("https://"):
             try:
-                import ssl
                 import socket
+                import ssl
 
                 context = ssl.create_default_context()
                 with socket.create_connection((host, 443), timeout=10) as sock:
@@ -447,11 +457,7 @@ def diagnose_network_connectivity(url: str) -> List[str]:
 
 
 def run_git_command_with_retry(
-    cmd: List[str],
-    description: str,
-    max_retries: int = 3,
-    timeout: int = 300,
-    retry_delay: int = 5
+    cmd: List[str], description: str, max_retries: int = 3, timeout: int = 300, retry_delay: int = 5
 ) -> subprocess.CompletedProcess[str]:
     """
     Run a Git command with automatic retry logic and error handling.
@@ -485,14 +491,12 @@ def run_git_command_with_retry(
 
     for attempt in range(max_retries):
         try:
-            logger.debug(f"Running git command (attempt {attempt + 1}/{max_retries}): {' '.join(cmd)}")
+            logger.debug(
+                f"Running git command (attempt {attempt + 1}/{max_retries}): {' '.join(cmd)}"
+            )
 
             result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                check=False
+                cmd, capture_output=True, text=True, timeout=timeout, check=False
             )
 
             # Analyze the result and raise appropriate exceptions
@@ -515,8 +519,12 @@ def run_git_command_with_retry(
 
                 elif _is_network_error(error_msg):
                     if attempt < max_retries - 1:
-                        logger.warning(f"Network error (attempt {attempt + 1}/{max_retries}): {error_msg}")
-                        print_colored(f"Network error, retrying in {retry_delay} seconds...", Fore.YELLOW)
+                        logger.warning(
+                            f"Network error (attempt {attempt + 1}/{max_retries}): {error_msg}"
+                        )
+                        print_colored(
+                            f"Network error, retrying in {retry_delay} seconds...", Fore.YELLOW
+                        )
                         time.sleep(retry_delay)
                         continue
                     raise NetworkConnectionError(
@@ -526,12 +534,18 @@ def run_git_command_with_retry(
                 else:
                     # Generic error
                     if attempt < max_retries - 1:
-                        logger.warning(f"Git command failed (attempt {attempt + 1}/{max_retries}): {error_msg}")
-                        print_colored(f"Command failed, retrying in {retry_delay} seconds...", Fore.YELLOW)
+                        logger.warning(
+                            f"Git command failed (attempt {attempt + 1}/{max_retries}): {error_msg}"
+                        )
+                        print_colored(
+                            f"Command failed, retrying in {retry_delay} seconds...", Fore.YELLOW
+                        )
                         time.sleep(retry_delay)
                         continue
                     else:
-                        raise RuntimeError(f"Git command failed after {max_retries} attempts: {error_msg}")
+                        raise RuntimeError(
+                            f"Git command failed after {max_retries} attempts: {error_msg}"
+                        )
 
             # Success!
             logger.debug(f"Git command completed successfully: {description}")
@@ -540,7 +554,9 @@ def run_git_command_with_retry(
         except subprocess.TimeoutExpired:
             if attempt < max_retries - 1:
                 logger.warning(f"Git command timed out (attempt {attempt + 1}/{max_retries})")
-                print_colored(f"Operation timed out, retrying in {retry_delay} seconds...", Fore.YELLOW)
+                print_colored(
+                    f"Operation timed out, retrying in {retry_delay} seconds...", Fore.YELLOW
+                )
                 time.sleep(retry_delay)
                 continue
             raise NetworkTimeoutError(f"Git command timed out after {max_retries} attempts")
@@ -549,7 +565,9 @@ def run_git_command_with_retry(
             last_exception = exc
             if attempt < max_retries - 1:
                 logger.warning(f"Unexpected error (attempt {attempt + 1}/{max_retries}): {exc}")
-                print_colored(f"Unexpected error, retrying in {retry_delay} seconds...", Fore.YELLOW)
+                print_colored(
+                    f"Unexpected error, retrying in {retry_delay} seconds...", Fore.YELLOW
+                )
                 time.sleep(retry_delay)
                 continue
             raise
@@ -571,7 +589,7 @@ def _is_network_error(error_msg: str) -> bool:
         "failed to connect",
         "network error",
         "transfer closed with",
-        "the remote end hung up unexpectedly"
+        "the remote end hung up unexpectedly",
     ]
     return any(indicator.lower() in error_msg.lower() for indicator in network_indicators)
 
@@ -585,7 +603,7 @@ def _is_ssl_error(error_msg: str) -> bool:
         "certificate verify failed",
         "self signed certificate",
         "certificate has expired",
-        "unable to verify the first certificate"
+        "unable to verify the first certificate",
     ]
     return any(indicator.lower() in error_msg.lower() for indicator in ssl_indicators)
 
@@ -600,7 +618,7 @@ def _is_authentication_error(error_msg: str) -> bool:
         "invalid credentials",
         "repository not found",
         "does not exist",
-        "remote: invalid username or password"
+        "remote: invalid username or password",
     ]
     return any(indicator.lower() in error_msg.lower() for indicator in auth_indicators)
 
@@ -615,7 +633,7 @@ def _is_repository_error(error_msg: str) -> bool:
         "remote: permission to",
         "remote: the repository you are trying to access does not exist",
         "fatal: remote error:",
-        "fatal: could not read from remote repository"
+        "fatal: could not read from remote repository",
     ]
     return any(indicator.lower() in error_msg.lower() for indicator in repo_indicators)
 
@@ -627,12 +645,14 @@ def _is_disk_space_error(error_msg: str) -> bool:
         "disk full",
         "insufficient disk space",
         "out of disk space",
-        "disk quota exceeded"
+        "disk quota exceeded",
     ]
     return any(indicator.lower() in error_msg.lower() for indicator in disk_indicators)
 
 
-def clone_bitcoin_repo_enhanced(repo_url: str, branch: str, target_dir: str = "bitcoin", use_cache: bool = True) -> None:
+def clone_bitcoin_repo_enhanced(
+    repo_url: str, branch: str, target_dir: str = "bitcoin", use_cache: bool = True
+) -> None:
     """
     Enhanced Bitcoin repository cloning with comprehensive error handling and caching.
 
@@ -680,19 +700,21 @@ def clone_bitcoin_repo_enhanced(repo_url: str, branch: str, target_dir: str = "b
                 with file_system_lock(f"copy_cached_repo_{target_dir}"):
                     if target_path.exists():
                         import shutil
+
                         shutil.rmtree(target_path)
 
                     import shutil
+
                     shutil.copytree(cached_repo, target_path)
 
                     # Ensure we're on the correct branch
                     run_git_command_with_retry(
-                        ["git", "checkout", branch],
-                        f"Switch to branch {branch}",
-                        cwd=target_path
+                        ["git", "checkout", branch], f"Switch to branch {branch}", cwd=target_path
                     )
 
-                    print_colored(f"[CACHE] Repository copied from cache to '{target_dir}'", Fore.GREEN)
+                    print_colored(
+                        f"[CACHE] Repository copied from cache to '{target_dir}'", Fore.GREEN
+                    )
                     logger.info(f"Successfully copied cached repository to {target_dir}")
                     return
 
@@ -704,6 +726,7 @@ def clone_bitcoin_repo_enhanced(repo_url: str, branch: str, target_dir: str = "b
                 try:
                     if target_path.exists():
                         import shutil
+
                         shutil.rmtree(target_path)
                 except Exception:
                     pass
@@ -711,7 +734,9 @@ def clone_bitcoin_repo_enhanced(repo_url: str, branch: str, target_dir: str = "b
     # Thread-safe check for existing directory
     with file_system_lock(f"check_existing_repo_{target_dir}"):
         if target_path.exists():
-            print_colored(f"[OK] Bitcoin source directory '{target_dir}' already exists", Fore.GREEN)
+            print_colored(
+                f"[OK] Bitcoin source directory '{target_dir}' already exists", Fore.GREEN
+            )
             logger.info(f"Repository directory {target_dir} already exists, skipping clone")
             return
 
@@ -739,7 +764,7 @@ def clone_bitcoin_repo_enhanced(repo_url: str, branch: str, target_dir: str = "b
             description=f"Clone Bitcoin repository to {target_dir}",
             max_retries=3,
             timeout=600,  # 10 minutes timeout
-            retry_delay=10
+            retry_delay=10,
         )
 
         print_colored("[SUCCESS] Bitcoin repository cloned successfully", Fore.GREEN)
@@ -767,14 +792,20 @@ def clone_bitcoin_repo_enhanced(repo_url: str, branch: str, target_dir: str = "b
     except SSLError as e:
         logger.error(f"SSL certificate error during clone: {e}")
         print_colored(f"[ERROR] SSL certificate verification failed: {e}", Fore.RED)
-        print_colored("This might be due to firewall restrictions or certificate issues.", Fore.WHITE)
-        print_colored("You can try using HTTP instead of HTTPS if the repository allows it.", Fore.WHITE)
+        print_colored(
+            "This might be due to firewall restrictions or certificate issues.", Fore.WHITE
+        )
+        print_colored(
+            "You can try using HTTP instead of HTTPS if the repository allows it.", Fore.WHITE
+        )
         raise
 
     except AuthenticationError as e:
         logger.error(f"Authentication error during clone: {e}")
         print_colored(f"[ERROR] Authentication failed: {e}", Fore.RED)
-        print_colored("Please check your credentials and repository access permissions.", Fore.WHITE)
+        print_colored(
+            "Please check your credentials and repository access permissions.", Fore.WHITE
+        )
         raise
 
     except RepositoryError as e:

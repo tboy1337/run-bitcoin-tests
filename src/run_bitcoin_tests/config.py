@@ -46,6 +46,7 @@ logger = get_logger(__name__)
 # Try to import python-dotenv for .env file support
 try:
     from dotenv import load_dotenv
+
     HAS_DOTENV = True
 except ImportError:
     HAS_DOTENV = False
@@ -55,6 +56,7 @@ except ImportError:
 @dataclass
 class RepositoryConfig:
     """Repository-related configuration."""
+
     url: str = "https://github.com/bitcoin/bitcoin"
     branch: str = "master"
     clone_timeout: int = 600  # seconds
@@ -67,6 +69,7 @@ class RepositoryConfig:
 @dataclass
 class BuildConfig:
     """Build-related configuration."""
+
     type: str = "RelWithDebInfo"  # Debug, Release, RelWithDebInfo, MinSizeRel
     parallel_jobs: Optional[int] = None  # None = auto-detect
     cmake_args: List[str] = field(default_factory=list)
@@ -78,6 +81,7 @@ class BuildConfig:
 @dataclass
 class DockerConfig:
     """Docker-related configuration."""
+
     compose_file: str = "docker-compose.yml"
     build_context: str = "."
     build_timeout: int = 1800  # seconds
@@ -90,6 +94,7 @@ class DockerConfig:
 @dataclass
 class NetworkConfig:
     """Network-related configuration."""
+
     timeout: int = 300  # seconds
     retries: int = 3
     retry_delay: int = 5
@@ -104,6 +109,7 @@ class NetworkConfig:
 @dataclass
 class ExecutionConfig:
     """Test execution configuration."""
+
     timeout: int = 3600  # seconds
     parallel: bool = True
     parallel_jobs: Optional[int] = None
@@ -123,6 +129,7 @@ class ExecutionConfig:
 @dataclass
 class LoggingConfig:
     """Logging configuration."""
+
     level: str = "INFO"
     file: Optional[str] = None
     format: str = "%(asctime)s - %(levelname)s - %(message)s"
@@ -134,6 +141,7 @@ class LoggingConfig:
 @dataclass
 class SecurityConfig:
     """Security-related configuration."""
+
     allow_insecure_ssl: bool = False
     trusted_hosts: List[str] = field(default_factory=lambda: ["github.com", "gitlab.com"])
     block_private_ips: bool = True
@@ -144,6 +152,7 @@ class SecurityConfig:
 @dataclass
 class BitcoinConfig:
     """Bitcoin Core specific configuration."""
+
     version: Optional[str] = None
     commit_hash: Optional[str] = None
     test_bitcoin_path: str = "src/test/test_bitcoin"
@@ -154,6 +163,7 @@ class BitcoinConfig:
 @dataclass
 class AppConfig:
     """Main application configuration."""
+
     repository: RepositoryConfig = field(default_factory=RepositoryConfig)
     build: BuildConfig = field(default_factory=BuildConfig)
     docker: DockerConfig = field(default_factory=DockerConfig)
@@ -201,43 +211,87 @@ class ConfigManager:
 
         # Repository settings
         self.config.repository.url = self._get_env_var("BTC_REPO_URL", self.config.repository.url)
-        self.config.repository.branch = self._get_env_var("BTC_REPO_BRANCH", self.config.repository.branch)
-        self.config.repository.clone_timeout = self._get_env_var("BTC_CLONE_TIMEOUT", self.config.repository.clone_timeout, int)
-        self.config.repository.clone_retries = self._get_env_var("BTC_CLONE_RETRIES", self.config.repository.clone_retries, int)
-        self.config.repository.shallow_clone = self._get_env_var("BTC_SHALLOW_CLONE", self.config.repository.shallow_clone, bool)
+        self.config.repository.branch = self._get_env_var(
+            "BTC_REPO_BRANCH", self.config.repository.branch
+        )
+        self.config.repository.clone_timeout = self._get_env_var(
+            "BTC_CLONE_TIMEOUT", self.config.repository.clone_timeout, int
+        )
+        self.config.repository.clone_retries = self._get_env_var(
+            "BTC_CLONE_RETRIES", self.config.repository.clone_retries, int
+        )
+        self.config.repository.shallow_clone = self._get_env_var(
+            "BTC_SHALLOW_CLONE", self.config.repository.shallow_clone, bool
+        )
 
         # Build settings
         self.config.build.type = self._get_env_var("BTC_BUILD_TYPE", self.config.build.type)
-        self.config.build.parallel_jobs = self._get_env_var("BTC_BUILD_JOBS", self.config.build.parallel_jobs, int)
-        self.config.build.enable_tests = self._get_env_var("BTC_ENABLE_TESTS", self.config.build.enable_tests, bool)
+        self.config.build.parallel_jobs = self._get_env_var(
+            "BTC_BUILD_JOBS", self.config.build.parallel_jobs, int
+        )
+        self.config.build.enable_tests = self._get_env_var(
+            "BTC_ENABLE_TESTS", self.config.build.enable_tests, bool
+        )
 
         # Docker settings
-        self.config.docker.compose_file = self._get_env_var("BTC_COMPOSE_FILE", self.config.docker.compose_file)
-        self.config.docker.container_name = self._get_env_var("BTC_CONTAINER_NAME", self.config.docker.container_name)
-        self.config.docker.keep_containers = self._get_env_var("BTC_KEEP_CONTAINERS", self.config.docker.keep_containers, bool)
-        self.config.docker.docker_host = self._get_env_var("DOCKER_HOST", self.config.docker.docker_host)
+        self.config.docker.compose_file = self._get_env_var(
+            "BTC_COMPOSE_FILE", self.config.docker.compose_file
+        )
+        self.config.docker.container_name = self._get_env_var(
+            "BTC_CONTAINER_NAME", self.config.docker.container_name
+        )
+        self.config.docker.keep_containers = self._get_env_var(
+            "BTC_KEEP_CONTAINERS", self.config.docker.keep_containers, bool
+        )
+        self.config.docker.docker_host = self._get_env_var(
+            "DOCKER_HOST", self.config.docker.docker_host
+        )
 
         # Network settings
-        self.config.network.timeout = self._get_env_var("BTC_NETWORK_TIMEOUT", self.config.network.timeout, int)
-        self.config.network.retries = self._get_env_var("BTC_NETWORK_RETRIES", self.config.network.retries, int)
-        self.config.network.proxy = self._get_env_var("HTTPS_PROXY", self.config.network.proxy) or self._get_env_var("HTTP_PROXY", self.config.network.proxy)
+        self.config.network.timeout = self._get_env_var(
+            "BTC_NETWORK_TIMEOUT", self.config.network.timeout, int
+        )
+        self.config.network.retries = self._get_env_var(
+            "BTC_NETWORK_RETRIES", self.config.network.retries, int
+        )
+        self.config.network.proxy = self._get_env_var(
+            "HTTPS_PROXY", self.config.network.proxy
+        ) or self._get_env_var("HTTP_PROXY", self.config.network.proxy)
 
         # Test settings
-        self.config.test.timeout = self._get_env_var("BTC_TEST_TIMEOUT", self.config.test.timeout, int)
-        self.config.test.parallel = self._get_env_var("BTC_TEST_PARALLEL", self.config.test.parallel, bool)
-        self.config.test.parallel_jobs = self._get_env_var("BTC_TEST_JOBS", self.config.test.parallel_jobs, int)
-        self.config.test.test_suite = self._get_env_var("BTC_TEST_SUITE", self.config.test.test_suite)
-        self.config.test.python_test_scope = self._get_env_var("BTC_PYTHON_TEST_SCOPE", self.config.test.python_test_scope)
-        self.config.test.python_test_jobs = self._get_env_var("BTC_PYTHON_TEST_JOBS", self.config.test.python_test_jobs, int)
-        self.config.test.cpp_test_args = self._get_env_var("BTC_CPP_TEST_ARGS", self.config.test.cpp_test_args)
-        self.config.test.python_test_args = self._get_env_var("BTC_PYTHON_TEST_ARGS", self.config.test.python_test_args)
+        self.config.test.timeout = self._get_env_var(
+            "BTC_TEST_TIMEOUT", self.config.test.timeout, int
+        )
+        self.config.test.parallel = self._get_env_var(
+            "BTC_TEST_PARALLEL", self.config.test.parallel, bool
+        )
+        self.config.test.parallel_jobs = self._get_env_var(
+            "BTC_TEST_JOBS", self.config.test.parallel_jobs, int
+        )
+        self.config.test.test_suite = self._get_env_var(
+            "BTC_TEST_SUITE", self.config.test.test_suite
+        )
+        self.config.test.python_test_scope = self._get_env_var(
+            "BTC_PYTHON_TEST_SCOPE", self.config.test.python_test_scope
+        )
+        self.config.test.python_test_jobs = self._get_env_var(
+            "BTC_PYTHON_TEST_JOBS", self.config.test.python_test_jobs, int
+        )
+        self.config.test.cpp_test_args = self._get_env_var(
+            "BTC_CPP_TEST_ARGS", self.config.test.cpp_test_args
+        )
+        self.config.test.python_test_args = self._get_env_var(
+            "BTC_PYTHON_TEST_ARGS", self.config.test.python_test_args
+        )
 
         # Logging settings
         self.config.logging.level = self._get_env_var("BTC_LOG_LEVEL", self.config.logging.level)
         self.config.logging.file = self._get_env_var("BTC_LOG_FILE", self.config.logging.file)
 
         # Security settings
-        self.config.security.allow_insecure_ssl = self._get_env_var("BTC_ALLOW_INSECURE_SSL", self.config.security.allow_insecure_ssl, bool)
+        self.config.security.allow_insecure_ssl = self._get_env_var(
+            "BTC_ALLOW_INSECURE_SSL", self.config.security.allow_insecure_ssl, bool
+        )
 
         # Application settings
         self.config.debug = self._get_env_var("BTC_DEBUG", self.config.debug, bool)
@@ -250,49 +304,49 @@ class ConfigManager:
         logger.debug("Updating configuration from CLI arguments")
 
         # Repository settings
-        if hasattr(args, 'repo_url') and args.repo_url:
+        if hasattr(args, "repo_url") and args.repo_url:
             self.config.repository.url = args.repo_url
-        if hasattr(args, 'branch') and args.branch:
+        if hasattr(args, "branch") and args.branch:
             self.config.repository.branch = args.branch
 
         # Logging settings
-        if hasattr(args, 'verbose') and args.verbose:
+        if hasattr(args, "verbose") and args.verbose:
             self.config.verbose = True
             self.config.logging.level = "DEBUG"
-        if hasattr(args, 'quiet') and args.quiet:
+        if hasattr(args, "quiet") and args.quiet:
             self.config.quiet = True
             self.config.logging.level = "ERROR"
-        if hasattr(args, 'log_file') and args.log_file:
+        if hasattr(args, "log_file") and args.log_file:
             self.config.logging.file = args.log_file
-        if hasattr(args, 'log_level') and args.log_level:
+        if hasattr(args, "log_level") and args.log_level:
             self.config.logging.level = args.log_level
 
         # Performance settings
-        if hasattr(args, 'no_cache') and args.no_cache:
+        if hasattr(args, "no_cache") and args.no_cache:
             self.config.network.use_git_cache = False
-        if hasattr(args, 'performance_monitor') and args.performance_monitor:
+        if hasattr(args, "performance_monitor") and args.performance_monitor:
             # This could be used to enable more detailed monitoring
             # For now, we just set a flag that can be checked
             pass
 
         # Test suite settings
-        if hasattr(args, 'test_suite') and args.test_suite:
+        if hasattr(args, "test_suite") and args.test_suite:
             self.config.test.test_suite = args.test_suite
-        if hasattr(args, 'cpp_only') and args.cpp_only:
+        if hasattr(args, "cpp_only") and args.cpp_only:
             self.config.test.test_suite = "cpp"
-        if hasattr(args, 'python_only') and args.python_only:
+        if hasattr(args, "python_only") and args.python_only:
             self.config.test.test_suite = "python"
-        if hasattr(args, 'python_tests') and args.python_tests:
+        if hasattr(args, "python_tests") and args.python_tests:
             self.config.test.python_test_scope = args.python_tests
-        if hasattr(args, 'python_jobs') and args.python_jobs:
+        if hasattr(args, "python_jobs") and args.python_jobs:
             self.config.test.python_test_jobs = args.python_jobs
-        if hasattr(args, 'exclude_test') and args.exclude_test:
+        if hasattr(args, "exclude_test") and args.exclude_test:
             self.config.test.exclude_python_tests = args.exclude_test
-        if hasattr(args, 'build_jobs') and args.build_jobs:
+        if hasattr(args, "build_jobs") and args.build_jobs:
             self.config.build.parallel_jobs = args.build_jobs
-        if hasattr(args, 'build_type') and args.build_type:
+        if hasattr(args, "build_type") and args.build_type:
             self.config.build.type = args.build_type
-        if hasattr(args, 'keep_containers') and args.keep_containers:
+        if hasattr(args, "keep_containers") and args.keep_containers:
             self.config.docker.keep_containers = args.keep_containers
 
     def _get_env_var(self, name: str, default: Any, var_type: type = str) -> Any:
@@ -310,9 +364,9 @@ class ConfigManager:
             if var_type == bool:
                 # Handle boolean conversion
                 lower_value = value.lower()
-                if lower_value in ('true', '1', 'yes', 'on'):
+                if lower_value in ("true", "1", "yes", "on"):
                     parsed = True
-                elif lower_value in ('false', '0', 'no', 'off'):
+                elif lower_value in ("false", "0", "no", "off"):
                     parsed = False
                 else:
                     parsed = default
@@ -322,7 +376,7 @@ class ConfigManager:
                 parsed = float(value)
             elif var_type == list:
                 # Handle comma-separated lists
-                parsed = [item.strip() for item in value.split(',') if item.strip()]
+                parsed = [item.strip() for item in value.split(",") if item.strip()]
             else:
                 parsed = value
 
@@ -350,7 +404,9 @@ class ConfigManager:
         # Validate build type
         valid_build_types = ["Debug", "Release", "RelWithDebInfo", "MinSizeRel"]
         if self.config.build.type not in valid_build_types:
-            errors.append(f"Invalid build type '{self.config.build.type}'. Valid options: {valid_build_types}")
+            errors.append(
+                f"Invalid build type '{self.config.build.type}'. Valid options: {valid_build_types}"
+            )
 
         # Validate timeouts are reasonable
         if self.config.repository.clone_timeout < 30:
@@ -361,7 +417,9 @@ class ConfigManager:
         # Validate logging level
         valid_log_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
         if self.config.logging.level.upper() not in valid_log_levels:
-            errors.append(f"Invalid log level '{self.config.logging.level}'. Valid options: {valid_log_levels}")
+            errors.append(
+                f"Invalid log level '{self.config.logging.level}'. Valid options: {valid_log_levels}"
+            )
 
         # Validate parallel jobs
         if self.config.build.parallel_jobs is not None and self.config.build.parallel_jobs < 1:
@@ -372,7 +430,9 @@ class ConfigManager:
         # Validate test suite selection
         valid_test_suites = ["cpp", "python", "both"]
         if self.config.test.test_suite not in valid_test_suites:
-            errors.append(f"Invalid test suite '{self.config.test.test_suite}'. Valid options: {valid_test_suites}")
+            errors.append(
+                f"Invalid test suite '{self.config.test.test_suite}'. Valid options: {valid_test_suites}"
+            )
 
         # Validate Python test jobs
         if self.config.test.python_test_jobs < 1:
@@ -414,69 +474,85 @@ class ConfigManager:
 
         lines = []
         if include_comments:
-            lines.extend([
-                "# Bitcoin Core Tests Runner Configuration",
-                "# Generated automatically - edit as needed",
-                "",
-            ])
+            lines.extend(
+                [
+                    "# Bitcoin Core Tests Runner Configuration",
+                    "# Generated automatically - edit as needed",
+                    "",
+                ]
+            )
 
         # Repository settings
-        lines.extend([
-            f"BTC_REPO_URL={self.config.repository.url}",
-            f"BTC_REPO_BRANCH={self.config.repository.branch}",
-            f"BTC_CLONE_TIMEOUT={self.config.repository.clone_timeout}",
-            f"BTC_CLONE_RETRIES={self.config.repository.clone_retries}",
-            f"BTC_SHALLOW_CLONE={self.config.repository.shallow_clone}",
-            "",
-        ])
+        lines.extend(
+            [
+                f"BTC_REPO_URL={self.config.repository.url}",
+                f"BTC_REPO_BRANCH={self.config.repository.branch}",
+                f"BTC_CLONE_TIMEOUT={self.config.repository.clone_timeout}",
+                f"BTC_CLONE_RETRIES={self.config.repository.clone_retries}",
+                f"BTC_SHALLOW_CLONE={self.config.repository.shallow_clone}",
+                "",
+            ]
+        )
 
         # Build settings
-        lines.extend([
-            f"BTC_BUILD_TYPE={self.config.build.type}",
-            f"BTC_BUILD_JOBS={self.config.build.parallel_jobs or ''}",
-            f"BTC_ENABLE_TESTS={self.config.build.enable_tests}",
-            "",
-        ])
+        lines.extend(
+            [
+                f"BTC_BUILD_TYPE={self.config.build.type}",
+                f"BTC_BUILD_JOBS={self.config.build.parallel_jobs or ''}",
+                f"BTC_ENABLE_TESTS={self.config.build.enable_tests}",
+                "",
+            ]
+        )
 
         # Docker settings
-        lines.extend([
-            f"BTC_COMPOSE_FILE={self.config.docker.compose_file}",
-            f"BTC_CONTAINER_NAME={self.config.docker.container_name}",
-            f"BTC_KEEP_CONTAINERS={self.config.docker.keep_containers}",
-            "",
-        ])
+        lines.extend(
+            [
+                f"BTC_COMPOSE_FILE={self.config.docker.compose_file}",
+                f"BTC_CONTAINER_NAME={self.config.docker.container_name}",
+                f"BTC_KEEP_CONTAINERS={self.config.docker.keep_containers}",
+                "",
+            ]
+        )
 
         # Network settings
-        lines.extend([
-            f"BTC_NETWORK_TIMEOUT={self.config.network.timeout}",
-            f"BTC_NETWORK_RETRIES={self.config.network.retries}",
-            "",
-        ])
+        lines.extend(
+            [
+                f"BTC_NETWORK_TIMEOUT={self.config.network.timeout}",
+                f"BTC_NETWORK_RETRIES={self.config.network.retries}",
+                "",
+            ]
+        )
 
         # Test settings
-        lines.extend([
-            f"BTC_TEST_TIMEOUT={self.config.test.timeout}",
-            f"BTC_TEST_PARALLEL={self.config.test.parallel}",
-            f"BTC_TEST_JOBS={self.config.test.parallel_jobs or ''}",
-            "",
-        ])
+        lines.extend(
+            [
+                f"BTC_TEST_TIMEOUT={self.config.test.timeout}",
+                f"BTC_TEST_PARALLEL={self.config.test.parallel}",
+                f"BTC_TEST_JOBS={self.config.test.parallel_jobs or ''}",
+                "",
+            ]
+        )
 
         # Logging settings
-        lines.extend([
-            f"BTC_LOG_LEVEL={self.config.logging.level}",
-            f"BTC_LOG_FILE={self.config.logging.file or ''}",
-            "",
-        ])
+        lines.extend(
+            [
+                f"BTC_LOG_LEVEL={self.config.logging.level}",
+                f"BTC_LOG_FILE={self.config.logging.file or ''}",
+                "",
+            ]
+        )
 
         # Application settings
-        lines.extend([
-            f"BTC_DEBUG={self.config.debug}",
-            f"BTC_DRY_RUN={self.config.dry_run}",
-            f"BTC_VERBOSE={self.config.verbose}",
-            f"BTC_QUIET={self.config.quiet}",
-        ])
+        lines.extend(
+            [
+                f"BTC_DEBUG={self.config.debug}",
+                f"BTC_DRY_RUN={self.config.dry_run}",
+                f"BTC_VERBOSE={self.config.verbose}",
+                f"BTC_QUIET={self.config.quiet}",
+            ]
+        )
 
-        env_path.write_text("\n".join(lines), encoding='utf-8')
+        env_path.write_text("\n".join(lines), encoding="utf-8")
         logger.info("Configuration saved to %s", env_path)
 
 

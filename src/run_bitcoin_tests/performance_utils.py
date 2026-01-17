@@ -23,11 +23,12 @@ import logging
 import multiprocessing
 import os
 import platform
-import psutil
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Callable, Dict, List, Optional, Tuple
+
+import psutil
 
 logger = logging.getLogger(__name__)
 
@@ -96,25 +97,25 @@ class PerformanceMonitor:
         try:
             cpu_percent = psutil.cpu_percent(interval=None)
             memory = psutil.virtual_memory()
-            disk = psutil.disk_usage('/')
+            disk = psutil.disk_usage("/")
             network = psutil.net_io_counters()
 
             return {
-                'timestamp': time.time(),
-                'cpu_percent': cpu_percent,
-                'memory_percent': memory.percent,
-                'memory_used_gb': memory.used / (1024**3),
-                'memory_available_gb': memory.available / (1024**3),
-                'disk_percent': disk.percent,
-                'disk_used_gb': disk.used / (1024**3),
-                'disk_free_gb': disk.free / (1024**3),
-                'network_bytes_sent': network.bytes_sent if network else 0,
-                'network_bytes_recv': network.bytes_recv if network else 0,
-                'load_average': os.getloadavg() if hasattr(os, 'getloadavg') else None
+                "timestamp": time.time(),
+                "cpu_percent": cpu_percent,
+                "memory_percent": memory.percent,
+                "memory_used_gb": memory.used / (1024**3),
+                "memory_available_gb": memory.available / (1024**3),
+                "disk_percent": disk.percent,
+                "disk_used_gb": disk.used / (1024**3),
+                "disk_free_gb": disk.free / (1024**3),
+                "network_bytes_sent": network.bytes_sent if network else 0,
+                "network_bytes_recv": network.bytes_recv if network else 0,
+                "load_average": os.getloadavg() if hasattr(os, "getloadavg") else None,
             }
         except Exception as e:
             logger.warning(f"Error collecting metrics: {e}")
-            return {'timestamp': time.time(), 'error': str(e)}
+            return {"timestamp": time.time(), "error": str(e)}
 
 
 class ResourceOptimizer:
@@ -158,7 +159,8 @@ class ResourceOptimizer:
         """Optimize current process priority for better performance."""
         try:
             import platform
-            if platform.system() == 'Windows':
+
+            if platform.system() == "Windows":
                 # On Windows, we can't easily change priority from user process
                 pass
             else:
@@ -171,6 +173,7 @@ class ResourceOptimizer:
     def cleanup_memory() -> None:
         """Force garbage collection to free memory."""
         import gc
+
         gc.collect()
 
     @staticmethod
@@ -178,14 +181,14 @@ class ResourceOptimizer:
         """Get comprehensive system information for optimization decisions."""
         try:
             return {
-                'cpu_count': multiprocessing.cpu_count(),
-                'cpu_freq': psutil.cpu_freq().current if psutil.cpu_freq() else None,
-                'memory_total_gb': psutil.virtual_memory().total / (1024**3),
-                'memory_available_gb': psutil.virtual_memory().available / (1024**3),
-                'disk_total_gb': psutil.disk_usage('/').total / (1024**3),
-                'disk_free_gb': psutil.disk_usage('/').free / (1024**3),
-                'platform': platform.platform(),
-                'python_version': platform.python_version()
+                "cpu_count": multiprocessing.cpu_count(),
+                "cpu_freq": psutil.cpu_freq().current if psutil.cpu_freq() else None,
+                "memory_total_gb": psutil.virtual_memory().total / (1024**3),
+                "memory_available_gb": psutil.virtual_memory().available / (1024**3),
+                "disk_total_gb": psutil.disk_usage("/").total / (1024**3),
+                "disk_free_gb": psutil.disk_usage("/").free / (1024**3),
+                "platform": platform.platform(),
+                "python_version": platform.python_version(),
             }
         except Exception as e:
             logger.warning(f"Failed to get system info: {e}")
@@ -321,8 +324,10 @@ def optimize_system_resources() -> None:
 
         # Log system information
         system_info = ResourceOptimizer.get_system_info()
-        logger.info(f"System optimization applied. CPU cores: {system_info.get('cpu_count', 'unknown')}, "
-                   f"Memory: {system_info.get('memory_total_gb', 'unknown'):.1f}GB")
+        logger.info(
+            f"System optimization applied. CPU cores: {system_info.get('cpu_count', 'unknown')}, "
+            f"Memory: {system_info.get('memory_total_gb', 'unknown'):.1f}GB"
+        )
 
     except Exception as e:
         logger.warning(f"System optimization failed: {e}")
@@ -338,6 +343,7 @@ def with_performance_monitoring(func: Callable) -> Callable:
     Returns:
         Wrapped function that monitors performance
     """
+
     def wrapper(*args, **kwargs):
         monitor = get_performance_monitor()
         monitor.start_monitoring()
@@ -348,8 +354,12 @@ def with_performance_monitoring(func: Callable) -> Callable:
         finally:
             metrics = monitor.stop_monitoring()
             if metrics:
-                avg_cpu = sum(m['cpu_percent'] for m in metrics if 'cpu_percent' in m) / len(metrics)
-                avg_memory = sum(m['memory_percent'] for m in metrics if 'memory_percent' in m) / len(metrics)
+                avg_cpu = sum(m["cpu_percent"] for m in metrics if "cpu_percent" in m) / len(
+                    metrics
+                )
+                avg_memory = sum(
+                    m["memory_percent"] for m in metrics if "memory_percent" in m
+                ) / len(metrics)
                 logger.info(".2f")
 
     return wrapper
