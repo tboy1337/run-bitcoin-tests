@@ -17,7 +17,7 @@ sys.modules['colorama'] = None
 
 # Import our module - this will trigger the fallback
 try:
-    from run_bitcoin_tests.main import Fore, Style, print_colored
+    from run_bitcoin_tests.main import Fore, Style, print_colored  # isort: skip
     # Test that the fallback classes have the expected attributes
     assert hasattr(Fore, 'CYAN')
     assert hasattr(Fore, 'GREEN')

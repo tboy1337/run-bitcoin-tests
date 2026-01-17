@@ -23,7 +23,7 @@ Thread Safety Guarantees:
 - Resource cleanup is thread-safe and comprehensive
 
 Example Usage:
-    from run_bitcoin_tests.thread_utils import atomic_directory_operation
+    from run_bitcoin_tests.thread_utils import atomic_directory_operation  # isort: skip
 
     # Thread-safe directory creation
     with atomic_directory_operation(Path("my_dir"), "create_dir"):
@@ -80,7 +80,7 @@ def initialize_thread_safety() -> None:
 
     # Set up signal handlers for clean shutdown (if needed)
     try:
-        import signal  # pylint: disable=import-outside-toplevel
+        import signal  # pylint: disable=import-outside-toplevel  # isort: skip
 
         signal.signal(signal.SIGTERM, _signal_handler)
         signal.signal(signal.SIGINT, _signal_handler)
@@ -140,7 +140,7 @@ def emergency_cleanup() -> None:
 def _force_remove_container(container_id: str) -> None:
     """Force remove a Docker container."""
     try:
-        import subprocess  # pylint: disable=import-outside-toplevel
+        import subprocess  # pylint: disable=import-outside-toplevel  # isort: skip
 
         result = subprocess.run(
             ["docker", "rm", "-f", container_id],
@@ -160,7 +160,7 @@ def _force_remove_container(container_id: str) -> None:
 def _force_remove_temp_dir(temp_dir: Path) -> None:
     """Force remove a temporary directory."""
     try:
-        import shutil  # pylint: disable=import-outside-toplevel
+        import shutil  # pylint: disable=import-outside-toplevel  # isort: skip
 
         shutil.rmtree(temp_dir, ignore_errors=True)
         logger.debug("Removed temp directory %s", temp_dir)
@@ -315,7 +315,7 @@ def thread_safe_temp_dir(
             logger.error("Failed to create temp directory: %s", exc)
             if temp_dir and temp_dir.exists():
                 try:
-                    import shutil  # pylint: disable=import-outside-toplevel
+                    import shutil  # pylint: disable=import-outside-toplevel  # isort: skip
 
                     shutil.rmtree(temp_dir)
                 except Exception:
@@ -326,7 +326,7 @@ def thread_safe_temp_dir(
                 _temp_directories.discard(temp_dir)
                 if temp_dir.exists():
                     try:
-                        import shutil  # pylint: disable=import-outside-toplevel
+                        import shutil  # pylint: disable=import-outside-toplevel  # isort: skip
 
                         shutil.rmtree(temp_dir)
                         logger.debug("Cleaned up temp directory: %s", temp_dir)

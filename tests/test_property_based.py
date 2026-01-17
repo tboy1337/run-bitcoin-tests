@@ -56,8 +56,8 @@ class TestArgumentsHypothesis:
     )
     def test_parse_arguments_various_urls_and_branches(self, repo_url, branch) -> None:
         """Test argument parsing with various valid URLs and branch names."""
-        from run_bitcoin_tests.main import parse_arguments
-        from run_bitcoin_tests.validation import ValidationError
+        from run_bitcoin_tests.main import parse_arguments  # isort: skip
+        from run_bitcoin_tests.validation import ValidationError  # isort: skip
 
         test_args = ["script.py", "-r", repo_url, "-b", branch]
 
@@ -82,7 +82,7 @@ class TestCloneRepoHypothesis:
     )
     def test_clone_bitcoin_repo_various_inputs(self, repo_url, branch) -> None:
         """Test clone_bitcoin_repo with various repository URLs and branches."""
-        from run_bitcoin_tests.main import clone_bitcoin_repo
+        from run_bitcoin_tests.main import clone_bitcoin_repo  # isort: skip
 
         with patch("run_bitcoin_tests.main.clone_bitcoin_repo_enhanced") as mock_clone_enhanced:
             # Mock the enhanced clone function to not raise an exception
@@ -109,7 +109,7 @@ class TestPrerequisitesHypothesis:
     )
     def test_check_prerequisites_various_inputs(self, repo_url, branch) -> None:
         """Test check_prerequisites with various repository URLs and branches."""
-        from run_bitcoin_tests.main import check_prerequisites
+        from run_bitcoin_tests.main import check_prerequisites  # isort: skip
 
         with (
             patch("run_bitcoin_tests.main.clone_bitcoin_repo") as mock_clone,

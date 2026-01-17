@@ -59,8 +59,8 @@ from .thread_utils import (
 )
 
 try:
-    import colorama
-    from colorama import Fore as ColoramaFore, Style as ColoramaStyle
+    import colorama  # isort: skip
+    from colorama import Fore as ColoramaFore, Style as ColoramaStyle  # isort: skip
 
     colorama.init(autoreset=True)
     Fore = ColoramaFore
@@ -267,7 +267,7 @@ def build_docker_image() -> None:
     container_name = f"{config.docker.container_name}-build"
     with docker_container_lock(container_name):
         # Import here to avoid circular import
-        from .cross_platform_utils import (  # pylint: disable=import-outside-toplevel
+        from .cross_platform_utils import (  # pylint: disable=import-outside-toplevel  # isort: skip
             get_cross_platform_command,
         )
 
@@ -285,7 +285,7 @@ def build_docker_image() -> None:
         cmd.append(config.docker.container_name)
 
         # Enable buildkit for better caching and performance
-        import os  # pylint: disable=import-outside-toplevel
+        import os  # pylint: disable=import-outside-toplevel  # isort: skip
 
         old_docker_buildkit = os.environ.get("DOCKER_BUILDKIT")
         os.environ["DOCKER_BUILDKIT"] = "1"
@@ -336,7 +336,7 @@ def run_tests() -> int:
     container_name = f"{config.docker.container_name}-runner"
     with docker_container_lock(container_name):
         # Import here to avoid circular import
-        from .cross_platform_utils import (  # pylint: disable=import-outside-toplevel
+        from .cross_platform_utils import (  # pylint: disable=import-outside-toplevel  # isort: skip
             get_cross_platform_command,
         )
 
@@ -566,7 +566,7 @@ Configuration:
     # Handle special cases
     if args.config:
         # Import here since config_manager is only needed for special cases
-        from .config import config_manager  # pylint: disable=import-outside-toplevel
+        from .config import config_manager  # pylint: disable=import-outside-toplevel  # isort: skip
 
         config_manager.load_from_env_file(args.config)
 
@@ -574,7 +574,7 @@ Configuration:
         try:
             load_config(args)
             # Import here since config_manager is only needed for special cases
-            from .config import config_manager  # pylint: disable=import-outside-toplevel
+            from .config import config_manager  # pylint: disable=import-outside-toplevel  # isort: skip
 
             print(config_manager.get_summary())
             sys.exit(0)
@@ -586,7 +586,7 @@ Configuration:
         try:
             load_config(args)
             # Import here since config_manager is only needed for special cases
-            from .config import config_manager  # pylint: disable=import-outside-toplevel
+            from .config import config_manager  # pylint: disable=import-outside-toplevel  # isort: skip
 
             config_manager.save_to_env_file(args.save_config)
             print_colored(f"Configuration saved to {args.save_config}", Fore.GREEN)
@@ -645,7 +645,7 @@ def main() -> None:
     print_colored("Bitcoin Core C++ Tests Runner", Fore.CYAN, bright=True)
 
     # Import config_manager for summary display
-    from .config import config_manager  # pylint: disable=import-outside-toplevel
+    from .config import config_manager  # pylint: disable=import-outside-toplevel  # isort: skip
 
     if not config.quiet:
         print_colored(config_manager.get_summary(), Fore.WHITE)

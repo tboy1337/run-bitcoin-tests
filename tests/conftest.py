@@ -47,7 +47,7 @@ def temp_working_directory(tmp_path: Path) -> Generator[Path, None, None]:
     """Change to a temporary directory for the test."""
     original_cwd = Path.cwd()
     try:
-        import os
+        import os  # isort: skip
 
         os.chdir(tmp_path)
         yield tmp_path
@@ -78,7 +78,7 @@ def reset_modules() -> Generator[None, None, None]:
 def reset_config() -> Generator[None, None, None]:
     """Reset the global config manager between tests to ensure clean state."""
     # Import here to avoid import-time side effects
-    from run_bitcoin_tests import config as config_module
+    from run_bitcoin_tests import config as config_module  # isort: skip
 
     # Store original config
     original_config_manager = config_module.config_manager

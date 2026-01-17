@@ -237,7 +237,7 @@ class TestGitCacheSingleton:
     def test_get_git_cache_singleton(self) -> None:
         """Test that get_git_cache returns singleton instances."""
         # Clear any existing instance
-        import run_bitcoin_tests.network_utils as network_utils
+        import run_bitcoin_tests.network_utils as network_utils  # isort: skip
 
         network_utils._git_cache = None
 
@@ -254,7 +254,7 @@ class TestGitCacheSingleton:
         # But subsequent calls return the same instance
         with tempfile.TemporaryDirectory() as temp_dir:
             # Reset the global cache for this test
-            import run_bitcoin_tests.network_utils as nu
+            import run_bitcoin_tests.network_utils as nu  # isort: skip
 
             nu._git_cache = None
 
@@ -279,7 +279,7 @@ class TestGitCacheIntegration:
         (self.source_repo / "README.md").write_text("# Test Repo")
 
         # Initialize git repo and create main branch
-        import subprocess
+        import subprocess  # isort: skip
 
         subprocess.run(["git", "init"], cwd=self.source_repo, check=True, capture_output=True)
         subprocess.run(
@@ -344,13 +344,13 @@ class TestGitCacheIntegration:
         assert cached is not None
 
         # Simulate corrupted cache (remove .git directory)
-        import sys
+        import sys  # isort: skip
 
         if sys.platform != "win32":
             shutil.rmtree(cached / ".git")
         else:
             # On Windows, just rename/remove the directory to avoid permission issues
-            import os
+            import os  # isort: skip
 
             corrupted_git = cached / ".git"
             if corrupted_git.exists():

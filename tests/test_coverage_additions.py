@@ -27,7 +27,7 @@ class TestCloneBitcoinRepoErrorPaths:
     @patch("run_bitcoin_tests.main.get_config")
     def test_clone_repo_network_error(self, mock_get_config: Mock, mock_clone: Mock) -> None:
         """Test handling of NetworkError during cloning."""
-        from run_bitcoin_tests.network_utils import NetworkError
+        from run_bitcoin_tests.network_utils import NetworkError  # isort: skip
 
         mock_config = MagicMock()
         mock_config.network.use_git_cache = False
@@ -197,7 +197,7 @@ class TestPrintColoredEdgeCases:
 
     def test_print_colored_default(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test print_colored with default parameters."""
-        from colorama import Fore, Style
+        from colorama import Fore, Style  # isort: skip
 
         print_colored("Test message")
         captured = capsys.readouterr()
@@ -205,7 +205,7 @@ class TestPrintColoredEdgeCases:
 
     def test_print_colored_with_color(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test print_colored with specific color."""
-        from colorama import Fore, Style
+        from colorama import Fore, Style  # isort: skip
 
         print_colored("Red message", Fore.RED)
         captured = capsys.readouterr()
@@ -213,7 +213,7 @@ class TestPrintColoredEdgeCases:
 
     def test_print_colored_with_bright(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test print_colored with bright option."""
-        from colorama import Fore, Style
+        from colorama import Fore, Style  # isort: skip
 
         print_colored("Bright message", Fore.GREEN, bright=True)
         captured = capsys.readouterr()
@@ -245,7 +245,7 @@ class TestNetworkErrorHandling:
         capsys: pytest.CaptureFixture[str],
     ) -> None:
         """Test main function handling network errors."""
-        from run_bitcoin_tests.network_utils import NetworkError
+        from run_bitcoin_tests.network_utils import NetworkError  # isort: skip
 
         mock_config = MagicMock()
         mock_config.dry_run = False
@@ -290,7 +290,7 @@ class TestNetworkErrorHandling:
         capsys: pytest.CaptureFixture[str],
     ) -> None:
         """Test main function handling repository errors."""
-        from run_bitcoin_tests.network_utils import RepositoryError
+        from run_bitcoin_tests.network_utils import RepositoryError  # isort: skip
 
         mock_config = MagicMock()
         mock_config.dry_run = False

@@ -167,7 +167,7 @@ class TestErrorScenarios:
         """Test that prerequisites failure would trigger cleanup (integration test)."""
         # This is a conceptual test - in real usage, sys.exit() calls from individual
         # functions would exit the program. Here we test that the functions work as expected.
-        from run_bitcoin_tests.main import check_prerequisites
+        from run_bitcoin_tests.main import check_prerequisites  # isort: skip
 
         # Mock config
         mock_config = Mock()
@@ -189,7 +189,7 @@ class TestErrorScenarios:
     def test_build_failure_calls_cleanup_indirectly(self) -> None:
         """Test that build failure would trigger cleanup (integration test)."""
         # Similar to above - testing the function behavior directly
-        from run_bitcoin_tests.main import build_docker_image
+        from run_bitcoin_tests.main import build_docker_image  # isort: skip
 
         with (
             patch("run_bitcoin_tests.main.run_command") as mock_run,

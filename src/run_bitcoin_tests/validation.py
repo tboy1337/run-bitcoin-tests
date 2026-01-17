@@ -17,7 +17,7 @@ Features:
 ValidationError is raised for all validation failures with descriptive messages.
 
 Example Usage:
-    from run_bitcoin_tests.validation import validate_git_url, validate_branch_name
+    from run_bitcoin_tests.validation import validate_git_url, validate_branch_name  # isort: skip
 
     try:
         url = validate_git_url("https://github.com/bitcoin/bitcoin")
@@ -208,7 +208,7 @@ def sanitize_command_args(args: List[str]) -> List[str]:
 
 # Import print_colored here to avoid circular imports
 try:
-    from .main import Fore, print_colored  # type: ignore[attr-defined]
+    from .main import Fore, print_colored  # type: ignore[attr-defined]  # isort: skip
 except ImportError:
     # Fallback for when this module is imported directly
     def print_colored(

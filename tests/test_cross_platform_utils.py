@@ -176,7 +176,7 @@ class TestPathUtils:
 
     def teardown_method(self) -> None:
         """Clean up test fixtures."""
-        import shutil
+        import shutil  # isort: skip
 
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
@@ -229,7 +229,7 @@ class TestPathUtils:
         sub_path = base_dir / "sub" / "file.txt"
         relative = self.path_utils.get_relative_path(sub_path, base_dir)
         # Use os.path.join for cross-platform path comparison
-        import os
+        import os  # isort: skip
 
         expected = os.path.join("sub", "file.txt")
         assert str(relative) == expected

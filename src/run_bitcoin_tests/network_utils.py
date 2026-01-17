@@ -26,7 +26,7 @@ Error Hierarchy:
   - TimeoutError: Operation timeouts
 
 Example Usage:
-    from run_bitcoin_tests.network_utils import clone_bitcoin_repo_enhanced
+    from run_bitcoin_tests.network_utils import clone_bitcoin_repo_enhanced  # isort: skip
 
     try:
         clone_bitcoin_repo_enhanced(
@@ -58,7 +58,7 @@ logger = get_logger(__name__)
 
 # Try to import colorama for colored output, fallback to plain text
 try:
-    from .main import Fore, print_colored  # type: ignore[attr-defined]
+    from .main import Fore, print_colored  # type: ignore[attr-defined]  # isort: skip
 except ImportError:
 
     def print_colored(  # pylint: disable=unused-argument
@@ -392,7 +392,7 @@ def diagnose_network_connectivity(url: str) -> List[str]:
 
         # Test basic connectivity with ping
         try:
-            from .cross_platform_utils import get_cross_platform_command
+            from .cross_platform_utils import get_cross_platform_command  # isort: skip
 
             cmd_utils = get_cross_platform_command()
             ping_cmd = cmd_utils.get_ping_command(host, 5)
@@ -413,7 +413,7 @@ def diagnose_network_connectivity(url: str) -> List[str]:
 
         # Test DNS resolution
         try:
-            import socket
+            import socket  # isort: skip
 
             socket.gethostbyname(host)
             diagnostics.append(f"[OK] DNS resolution for {host} is working")
@@ -423,8 +423,8 @@ def diagnose_network_connectivity(url: str) -> List[str]:
         # Test SSL connectivity if HTTPS
         if url.startswith("https://"):
             try:
-                import socket  # pylint: disable=import-outside-toplevel
-                import ssl  # pylint: disable=import-outside-toplevel
+                import socket  # pylint: disable=import-outside-toplevel  # isort: skip
+                import ssl  # pylint: disable=import-outside-toplevel  # isort: skip
 
                 context = ssl.create_default_context()
                 with socket.create_connection((host, 443), timeout=10) as sock:

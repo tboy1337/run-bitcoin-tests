@@ -24,7 +24,7 @@ Environment Variables:
 - And many more...
 
 Example Usage:
-    from run_bitcoin_tests.config import load_config, get_config
+    from run_bitcoin_tests.config import load_config, get_config  # isort: skip
 
     # Load configuration from all sources
     config = load_config(cli_args)
@@ -45,7 +45,7 @@ logger = get_logger(__name__)
 
 # Try to import python-dotenv for .env file support
 try:
-    from dotenv import load_dotenv
+    from dotenv import load_dotenv  # isort: skip
 
     HAS_DOTENV = True
 except ImportError:

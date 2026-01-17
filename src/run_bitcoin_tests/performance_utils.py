@@ -164,7 +164,7 @@ class ResourceOptimizer:
     def optimize_process_priority() -> None:
         """Optimize current process priority for better performance."""
         try:
-            import platform  # pylint: disable=import-outside-toplevel,reimported
+            import platform  # pylint: disable=import-outside-toplevel,reimported  # isort: skip
 
             if platform.system() == "Windows":
                 # On Windows, we can't easily change priority from user process
@@ -179,7 +179,7 @@ class ResourceOptimizer:
     @staticmethod
     def cleanup_memory() -> None:
         """Force garbage collection to free memory."""
-        import gc  # pylint: disable=import-outside-toplevel,reimported
+        import gc  # pylint: disable=import-outside-toplevel,reimported  # isort: skip
 
         gc.collect()
 
@@ -187,7 +187,7 @@ class ResourceOptimizer:
     def get_system_info() -> Dict[str, Union[int, float, str, None]]:
         """Get comprehensive system information for optimization decisions."""
         try:
-            import platform  # pylint: disable=import-outside-toplevel,reimported
+            import platform  # pylint: disable=import-outside-toplevel,reimported  # isort: skip
 
             return {
                 "cpu_count": multiprocessing.cpu_count(),

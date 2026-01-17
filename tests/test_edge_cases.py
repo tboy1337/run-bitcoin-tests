@@ -265,7 +265,7 @@ class TestConcurrencyEdgeCases:
     @patch("run_bitcoin_tests.main.run_command")
     def test_cleanup_called_multiple_times(self, mock_run_command) -> None:
         """Test that cleanup can be called multiple times safely."""
-        from run_bitcoin_tests.main import cleanup_containers
+        from run_bitcoin_tests.main import cleanup_containers  # isort: skip
 
         mock_result = Mock()
         mock_result.returncode = 0

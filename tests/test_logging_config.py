@@ -116,7 +116,7 @@ class TestSetupLogging:
 
     def test_color_filter_removes_ansi_codes(self) -> None:
         """Test that ColorFilter removes ANSI escape codes."""
-        from run_bitcoin_tests.logging_config import setup_logging
+        from run_bitcoin_tests.logging_config import setup_logging  # isort: skip
 
         logger = setup_logging()
         console_handler = next(
@@ -163,7 +163,7 @@ class TestGlobalLogger:
 
     def test_global_logger_exists(self) -> None:
         """Test that global logger is properly initialized."""
-        from run_bitcoin_tests.logging_config import logger
+        from run_bitcoin_tests.logging_config import logger  # isort: skip
 
         assert logger.name == "bitcoin_tests.bitcoin_tests"
         assert isinstance(logger, logging.Logger)

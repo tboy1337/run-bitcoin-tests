@@ -198,7 +198,7 @@ class TestResourceOptimizer:
     @patch("platform.system", return_value="Linux")
     def test_optimize_process_priority_linux(self, mock_platform) -> None:
         """Test process priority optimization on Linux."""
-        import sys
+        import sys  # isort: skip
 
         if sys.platform == "win32":
             pytest.skip("os.nice not available on Windows")
@@ -215,7 +215,7 @@ class TestResourceOptimizer:
     @patch("platform.system", return_value="Linux")
     def test_optimize_process_priority_exception(self, mock_platform) -> None:
         """Test optimize_process_priority handles exceptions gracefully."""
-        import sys
+        import sys  # isort: skip
 
         if sys.platform == "win32":
             pytest.skip("os.nice not available on Windows")
@@ -364,7 +364,7 @@ class TestGlobalFunctions:
     def test_get_performance_monitor_singleton(self) -> None:
         """Test that get_performance_monitor returns singleton instances."""
         # Reset the singleton for this test
-        import run_bitcoin_tests.performance_utils as pu
+        import run_bitcoin_tests.performance_utils as pu  # isort: skip
 
         pu._performance_monitor = None
 

@@ -82,8 +82,8 @@ class PlatformInfo:  # pylint: disable=too-many-instance-attributes
         if self.is_windows:
             # Check if we're running in a Unicode-capable terminal
             try:
-                import ctypes  # pylint: disable=import-outside-toplevel
-                from typing import cast  # pylint: disable=import-outside-toplevel
+                import ctypes  # pylint: disable=import-outside-toplevel  # isort: skip
+                from typing import cast  # pylint: disable=import-outside-toplevel  # isort: skip
 
                 kernel32 = cast(ctypes.WinDLL, ctypes.windll.kernel32)
                 return bool(kernel32.GetConsoleOutputCP())

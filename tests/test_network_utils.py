@@ -114,7 +114,7 @@ class TestRunGitCommandWithRetry:
     @patch("subprocess.run")
     def test_max_retries_exceeded(self, mock_run) -> None:
         """Test when max retries are exceeded."""
-        from run_bitcoin_tests.network_utils import NetworkConnectionError
+        from run_bitcoin_tests.network_utils import NetworkConnectionError  # isort: skip
 
         mock_result = Mock()
         mock_result.returncode = 128
@@ -261,7 +261,7 @@ class TestGitCache:
         instance = GitCache.get_instance(cache_dir="/tmp/custom", max_cache_size_gb=5.0)
 
         # Use Path comparison to handle platform differences
-        from pathlib import Path
+        from pathlib import Path  # isort: skip
 
         assert instance.cache_dir == Path("/tmp/custom")
         assert instance.max_cache_size_gb == 5.0
@@ -272,7 +272,7 @@ class TestGitCache:
             cache = GitCache(cache_dir="/tmp/test", max_cache_size_gb=2.0)
 
             # Use Path comparison to handle platform differences
-            from pathlib import Path
+            from pathlib import Path  # isort: skip
 
             assert cache.cache_dir == Path("/tmp/test")
             assert cache.max_cache_size_gb == 2.0
@@ -381,7 +381,7 @@ class TestGetGitCache:
         mock_git_cache_class.return_value = mock_instance
 
         # Reset global cache
-        import run_bitcoin_tests.network_utils as nu
+        import run_bitcoin_tests.network_utils as nu  # isort: skip
 
         nu._git_cache = None
 
@@ -397,7 +397,7 @@ class TestGetGitCache:
         mock_git_cache_class.return_value = mock_instance
 
         # Reset global cache
-        import run_bitcoin_tests.network_utils as nu
+        import run_bitcoin_tests.network_utils as nu  # isort: skip
 
         nu._git_cache = None
 

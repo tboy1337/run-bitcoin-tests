@@ -232,7 +232,7 @@ class TestTestExecution:
         self, mock_lock: Mock, mock_get_config: Mock, mock_run_command: Mock
     ) -> None:
         """Test running both test suites."""
-        from run_bitcoin_tests.main import run_tests
+        from run_bitcoin_tests.main import run_tests  # isort: skip
 
         # Setup mock config
         mock_config = MagicMock()
@@ -271,7 +271,7 @@ class TestTestExecution:
         self, mock_lock: Mock, mock_get_config: Mock, mock_run_command: Mock
     ) -> None:
         """Test running C++ tests only."""
-        from run_bitcoin_tests.main import run_tests
+        from run_bitcoin_tests.main import run_tests  # isort: skip
 
         # Setup mock config
         mock_config = MagicMock()
@@ -309,7 +309,7 @@ class TestTestExecution:
         self, mock_lock: Mock, mock_get_config: Mock, mock_run_command: Mock
     ) -> None:
         """Test running Python tests only."""
-        from run_bitcoin_tests.main import run_tests
+        from run_bitcoin_tests.main import run_tests  # isort: skip
 
         # Setup mock config
         mock_config = MagicMock()
@@ -349,7 +349,7 @@ class TestTestExecution:
         self, mock_lock: Mock, mock_get_config: Mock, mock_run_command: Mock
     ) -> None:
         """Test running tests with exclusions."""
-        from run_bitcoin_tests.main import run_tests
+        from run_bitcoin_tests.main import run_tests  # isort: skip
 
         # Setup mock config
         mock_config = MagicMock()
@@ -404,7 +404,7 @@ class TestIntegrationWithConfig:
     def test_full_config_flow_default(self) -> None:
         """Test full configuration flow with defaults."""
         # Create a fresh ConfigManager to avoid state from previous tests
-        from run_bitcoin_tests.config import ConfigManager
+        from run_bitcoin_tests.config import ConfigManager  # isort: skip
 
         manager = ConfigManager()
 
