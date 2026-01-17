@@ -40,7 +40,7 @@ import tempfile
 import threading
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Callable, Dict, Generator, IO, List, Optional, Set, TypeVar
+from typing import IO, Callable, Dict, Generator, List, Optional, Set, TypeVar
 
 from .logging_config import get_logger
 

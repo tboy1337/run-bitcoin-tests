@@ -368,7 +368,10 @@ class TestEmergencyCleanup:
     def test_emergency_cleanup(self, mock_remove_temp, mock_remove_container) -> None:
         """Test emergency cleanup calls appropriate functions."""
         # Add some mock containers and temp dirs to the global sets
-        from run_bitcoin_tests.thread_utils import _active_containers, _temp_directories  # isort: skip
+        from run_bitcoin_tests.thread_utils import (  # isort: skip
+            _active_containers,
+            _temp_directories,
+        )
 
         # Temporarily add items (this is not thread-safe but ok for testing)
         _active_containers.add("test_container")
@@ -387,7 +390,10 @@ class TestEmergencyCleanup:
     @patch("run_bitcoin_tests.thread_utils.logger")
     def test_emergency_cleanup_exception_handling(self, mock_logger) -> None:
         """Test emergency cleanup handles exceptions gracefully."""
-        from run_bitcoin_tests.thread_utils import _active_containers, _temp_directories  # isort: skip
+        from run_bitcoin_tests.thread_utils import (  # isort: skip
+            _active_containers,
+            _temp_directories,
+        )
 
         # Add some containers and temp dirs
         _active_containers.add("test_container")

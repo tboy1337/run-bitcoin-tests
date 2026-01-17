@@ -233,7 +233,6 @@ class TestTestExecution:
     ) -> None:
         """Test running both test suites."""
         from run_bitcoin_tests.main import run_tests  # isort: skip
-
         # Setup mock config
         mock_config = MagicMock()
         mock_config.test.test_suite = "both"
@@ -272,7 +271,6 @@ class TestTestExecution:
     ) -> None:
         """Test running C++ tests only."""
         from run_bitcoin_tests.main import run_tests  # isort: skip
-
         # Setup mock config
         mock_config = MagicMock()
         mock_config.test.test_suite = "cpp"
@@ -310,7 +308,6 @@ class TestTestExecution:
     ) -> None:
         """Test running Python tests only."""
         from run_bitcoin_tests.main import run_tests  # isort: skip
-
         # Setup mock config
         mock_config = MagicMock()
         mock_config.test.test_suite = "python"
@@ -350,7 +347,6 @@ class TestTestExecution:
     ) -> None:
         """Test running tests with exclusions."""
         from run_bitcoin_tests.main import run_tests  # isort: skip
-
         # Setup mock config
         mock_config = MagicMock()
         mock_config.test.test_suite = "python"

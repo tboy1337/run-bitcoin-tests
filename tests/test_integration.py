@@ -168,7 +168,6 @@ class TestErrorScenarios:
         # This is a conceptual test - in real usage, sys.exit() calls from individual
         # functions would exit the program. Here we test that the functions work as expected.
         from run_bitcoin_tests.main import check_prerequisites  # isort: skip
-
         # Mock config
         mock_config = Mock()
         mock_config.quiet = True

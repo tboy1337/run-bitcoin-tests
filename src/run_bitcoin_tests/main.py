@@ -574,7 +574,9 @@ Configuration:
         try:
             load_config(args)
             # Import here since config_manager is only needed for special cases
-            from .config import config_manager  # pylint: disable=import-outside-toplevel  # isort: skip
+            from .config import (  # pylint: disable=import-outside-toplevel  # isort: skip
+                config_manager,
+            )
 
             print(config_manager.get_summary())
             sys.exit(0)
@@ -586,7 +588,9 @@ Configuration:
         try:
             load_config(args)
             # Import here since config_manager is only needed for special cases
-            from .config import config_manager  # pylint: disable=import-outside-toplevel  # isort: skip
+            from .config import (  # pylint: disable=import-outside-toplevel  # isort: skip
+                config_manager,
+            )
 
             config_manager.save_to_env_file(args.save_config)
             print_colored(f"Configuration saved to {args.save_config}", Fore.GREEN)

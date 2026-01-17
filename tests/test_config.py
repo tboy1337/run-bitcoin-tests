@@ -295,7 +295,6 @@ class TestConfigLoading:
     def test_load_config_validation_failure(self) -> None:
         """Test that invalid configuration raises ValueError."""
         from run_bitcoin_tests.config import config_manager  # isort: skip
-
         # Reset config and set invalid values directly
         config_manager.config.repository.url = ""  # Invalid empty URL
 
