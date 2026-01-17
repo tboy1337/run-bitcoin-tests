@@ -296,11 +296,10 @@ def build_docker_image() -> None:
 
 def run_tests() -> int:
     """
-    Run the Bitcoin Core unit tests in the Docker container.
+    Run the Bitcoin Core tests in the Docker container.
 
-    This function executes the compiled Bitcoin Core test suite within a
-    Docker container. The tests run with the configured timeout and parallel
-    execution settings.
+    This function executes the selected test suite(s) (C++, Python, or both)
+    within a Docker container based on the configuration.
 
     Returns:
         int: Exit code from the test execution (0 for success, non-zero for failure)
@@ -311,8 +310,14 @@ def run_tests() -> int:
     """
     config = get_config()
 
+    test_suite = config.test.test_suite
     if not config.quiet:
-        print_colored("Running Bitcoin Core unit tests...", Fore.YELLOW)
+        suite_name = {
+            "cpp": "C++ unit tests",
+            "python": "Python functional tests",
+            "both": "C++ unit tests and Python functional tests"
+        }.get(test_suite, "tests")
+        print_colored(f"Running Bitcoin Core {suite_name}...", Fore.YELLOW)
 
     container_name = f"{config.docker.container_name}-runner"
     with docker_container_lock(container_name):
@@ -321,6 +326,21 @@ def run_tests() -> int:
         docker_compose_cmd = cmd_utils.get_docker_compose_command()
 
         cmd: List[str] = docker_compose_cmd + ["run", "--rm"]
+
+        # Set environment variables for test configuration
+        cmd.extend(["-e", f"TEST_SUITE={config.test.test_suite}"])
+        cmd.extend(["-e", f"PYTHON_TEST_SCOPE={config.test.python_test_scope}"])
+        cmd.extend(["-e", f"PYTHON_TEST_JOBS={config.test.python_test_jobs}"])
+
+        if config.test.cpp_test_args:
+            cmd.extend(["-e", f"CPP_TEST_ARGS={config.test.cpp_test_args}"])
+
+        if config.test.python_test_args:
+            cmd.extend(["-e", f"PYTHON_TEST_ARGS={config.test.python_test_args}"])
+
+        if config.test.exclude_python_tests and len(config.test.exclude_python_tests) > 0:
+            exclude_tests = ",".join(config.test.exclude_python_tests)
+            cmd.extend(["-e", f"EXCLUDE_TESTS={exclude_tests}"])
 
         # Add the service name to run
         cmd.append(config.docker.container_name)
@@ -382,16 +402,30 @@ def parse_arguments() -> argparse.Namespace:
     """
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Run Bitcoin Core C++ unit tests in Docker",
+        description="Run Bitcoin Core tests (C++ unit tests and Python functional tests) in Docker",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  # Run all tests (C++ and Python)
   python run-bitcoin-tests.py
+
+  # Run only C++ tests
+  python run-bitcoin-tests.py --cpp-only
+
+  # Run only Python functional tests (standard suite)
+  python run-bitcoin-tests.py --python-only
+
+  # Run quick Python tests
+  python run-bitcoin-tests.py --python-only --python-tests quick
+
+  # Run specific Python test
+  python run-bitcoin-tests.py --python-only --python-tests wallet_basic
+
+  # Custom repository and branch
   python run-bitcoin-tests.py --repo-url https://github.com/myfork/bitcoin --branch my-feature-branch
-  python run-bitcoin-tests.py -r https://github.com/bitcoin/bitcoin -b v25.1
+
+  # Verbose output with log file
   python run-bitcoin-tests.py --verbose --log-file bitcoin-tests.log
-  python run-bitcoin-tests.py --config .env.production
-  python run-bitcoin-tests.py --dry-run
 
 Configuration:
   Settings can be configured via command line arguments, environment variables,
@@ -401,8 +435,9 @@ Configuration:
     BTC_REPO_URL=https://github.com/bitcoin/bitcoin
     BTC_REPO_BRANCH=master
     BTC_BUILD_TYPE=RelWithDebInfo
+    BTC_TEST_SUITE=both
+    BTC_PYTHON_TEST_SCOPE=standard
     BTC_LOG_LEVEL=INFO
-    BTC_TEST_TIMEOUT=3600
         """
     )
 
@@ -428,6 +463,44 @@ Configuration:
         "--build-jobs",
         type=int,
         help="Number of parallel build jobs (0 = auto-detect)"
+    )
+
+    # Test suite options
+    parser.add_argument(
+        "--test-suite",
+        choices=["cpp", "python", "both"],
+        default="both",
+        help="Which test suite(s) to run (default: both)"
+    )
+
+    parser.add_argument(
+        "--cpp-only",
+        action="store_true",
+        help="Run only C++ unit tests (shortcut for --test-suite cpp)"
+    )
+
+    parser.add_argument(
+        "--python-only",
+        action="store_true",
+        help="Run only Python functional tests (shortcut for --test-suite python)"
+    )
+
+    parser.add_argument(
+        "--python-tests",
+        help="Python test scope: 'all', 'standard', 'quick', or specific test name(s)"
+    )
+
+    parser.add_argument(
+        "--python-jobs",
+        type=int,
+        help="Number of parallel jobs for Python tests (default: 4)"
+    )
+
+    parser.add_argument(
+        "--exclude-test",
+        action="append",
+        dest="exclude_test",
+        help="Exclude specific Python test(s) (can be used multiple times)"
     )
 
     # Docker options

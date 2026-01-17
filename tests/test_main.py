@@ -275,6 +275,12 @@ class TestRunTests:
         mock_config.docker.container_name = "bitcoin-tests"
         mock_config.test.parallel = False
         mock_config.test.parallel_jobs = None
+        mock_config.test.test_suite = "both"
+        mock_config.test.python_test_scope = "standard"
+        mock_config.test.python_test_jobs = 4
+        mock_config.test.cpp_test_args = ""
+        mock_config.test.python_test_args = ""
+        mock_config.test.exclude_python_tests = []
         mock_config.quiet = False
         mock_get_config.return_value = mock_config
 
@@ -298,6 +304,12 @@ class TestRunTests:
         mock_config.docker.container_name = "bitcoin-tests"
         mock_config.test.parallel = False
         mock_config.test.parallel_jobs = None
+        mock_config.test.test_suite = "both"
+        mock_config.test.python_test_scope = "standard"
+        mock_config.test.python_test_jobs = 4
+        mock_config.test.cpp_test_args = ""
+        mock_config.test.python_test_args = ""
+        mock_config.test.exclude_python_tests = []
         mock_config.quiet = False
         mock_get_config.return_value = mock_config
 

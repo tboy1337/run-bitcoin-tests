@@ -116,6 +116,13 @@ class TestConfig:
     capture_output: bool = True
     test_filter: Optional[str] = None
     test_data_dir: Optional[str] = None
+    # Test suite selection
+    test_suite: str = "both"  # "cpp", "python", or "both"
+    python_test_scope: str = "standard"  # "all", "standard", "quick", or specific test pattern
+    python_test_jobs: int = 4  # parallel jobs for Python tests
+    cpp_test_args: str = ""  # arguments for C++ test_bitcoin executable
+    python_test_args: str = ""  # arguments for test_runner.py
+    exclude_python_tests: List[str] = field(default_factory=list)  # tests to exclude
 
 
 @dataclass
@@ -224,6 +231,11 @@ class ConfigManager:
         self.config.test.timeout = self._get_env_var("BTC_TEST_TIMEOUT", self.config.test.timeout, int)
         self.config.test.parallel = self._get_env_var("BTC_TEST_PARALLEL", self.config.test.parallel, bool)
         self.config.test.parallel_jobs = self._get_env_var("BTC_TEST_JOBS", self.config.test.parallel_jobs, int)
+        self.config.test.test_suite = self._get_env_var("BTC_TEST_SUITE", self.config.test.test_suite)
+        self.config.test.python_test_scope = self._get_env_var("BTC_PYTHON_TEST_SCOPE", self.config.test.python_test_scope)
+        self.config.test.python_test_jobs = self._get_env_var("BTC_PYTHON_TEST_JOBS", self.config.test.python_test_jobs, int)
+        self.config.test.cpp_test_args = self._get_env_var("BTC_CPP_TEST_ARGS", self.config.test.cpp_test_args)
+        self.config.test.python_test_args = self._get_env_var("BTC_PYTHON_TEST_ARGS", self.config.test.python_test_args)
 
         # Logging settings
         self.config.logging.level = self._get_env_var("BTC_LOG_LEVEL", self.config.logging.level)
@@ -267,6 +279,26 @@ class ConfigManager:
             # This could be used to enable more detailed monitoring
             # For now, we just set a flag that can be checked
             pass
+
+        # Test suite settings
+        if hasattr(args, 'test_suite') and args.test_suite:
+            self.config.test.test_suite = args.test_suite
+        if hasattr(args, 'cpp_only') and args.cpp_only:
+            self.config.test.test_suite = "cpp"
+        if hasattr(args, 'python_only') and args.python_only:
+            self.config.test.test_suite = "python"
+        if hasattr(args, 'python_tests') and args.python_tests:
+            self.config.test.python_test_scope = args.python_tests
+        if hasattr(args, 'python_jobs') and args.python_jobs:
+            self.config.test.python_test_jobs = args.python_jobs
+        if hasattr(args, 'exclude_test') and args.exclude_test:
+            self.config.test.exclude_python_tests = args.exclude_test
+        if hasattr(args, 'build_jobs') and args.build_jobs:
+            self.config.build.parallel_jobs = args.build_jobs
+        if hasattr(args, 'build_type') and args.build_type:
+            self.config.build.type = args.build_type
+        if hasattr(args, 'keep_containers') and args.keep_containers:
+            self.config.docker.keep_containers = args.keep_containers
 
     def _get_env_var(self, name: str, default: Any, var_type: type = str) -> Any:
         """Get environment variable with type conversion."""
@@ -340,6 +372,15 @@ class ConfigManager:
         if self.config.test.parallel_jobs is not None and self.config.test.parallel_jobs < 1:
             errors.append("Parallel test jobs must be >= 1")
 
+        # Validate test suite selection
+        valid_test_suites = ["cpp", "python", "both"]
+        if self.config.test.test_suite not in valid_test_suites:
+            errors.append(f"Invalid test suite '{self.config.test.test_suite}'. Valid options: {valid_test_suites}")
+
+        # Validate Python test jobs
+        if self.config.test.python_test_jobs < 1:
+            errors.append("Python test jobs must be >= 1")
+
         return errors
 
     def get_summary(self) -> str:
@@ -350,11 +391,17 @@ class ConfigManager:
             f"Repository: {self.config.repository.url} (branch: {self.config.repository.branch})",
             f"Build Type: {self.config.build.type}",
             f"Parallel Jobs: {self.config.build.parallel_jobs or 'auto'}",
+            f"Test Suite: {self.config.test.test_suite}",
             f"Test Timeout: {self.config.test.timeout}s",
             f"Log Level: {self.config.logging.level}",
             f"Debug Mode: {self.config.debug}",
             f"Dry Run: {self.config.dry_run}",
         ]
+
+        # Add Python test details if Python tests are selected
+        if self.config.test.test_suite in ["python", "both"]:
+            lines.append(f"Python Test Scope: {self.config.test.python_test_scope}")
+            lines.append(f"Python Test Jobs: {self.config.test.python_test_jobs}")
 
         if self.config.logging.file:
             lines.append(f"Log File: {self.config.logging.file}")

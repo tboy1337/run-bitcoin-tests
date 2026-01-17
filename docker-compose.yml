@@ -3,17 +3,28 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: bitcoin-cpp-tests
+    container_name: bitcoin-tests
     volumes:
       # Mount the bitcoin source directory for live development
       - ./bitcoin:/bitcoin-source:ro
       # Mount a volume for test results/output persistence
       - bitcoin-test-results:/test-results
     environment:
+      # Build configuration
       - BUILD_TYPE=${BUILD_TYPE:-RelWithDebInfo}
+      # Test suite selection
+      - TEST_SUITE=${TEST_SUITE:-both}
+      # Python functional test configuration
+      - PYTHON_TEST_SCOPE=${PYTHON_TEST_SCOPE:-standard}
+      - PYTHON_TEST_JOBS=${PYTHON_TEST_JOBS:-4}
+      - PYTHON_TEST_ARGS=${PYTHON_TEST_ARGS:-}
+      - EXCLUDE_TESTS=${EXCLUDE_TESTS:-}
+      # C++ test configuration
+      - CPP_TEST_ARGS=${CPP_TEST_ARGS:-}
+      # Legacy support
       - TEST_ARGS=${TEST_ARGS:-}
       - VERBOSE=${VERBOSE:-0}
-    command: ["/run_tests.sh"]
+    command: ["/run_all_tests.sh"]
     # Keep container running for debugging if needed
     stdin_open: true
     tty: true
