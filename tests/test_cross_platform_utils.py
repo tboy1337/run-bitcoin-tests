@@ -27,7 +27,7 @@ from run_bitcoin_tests.cross_platform_utils import (
 class TestPlatformInfo:
     """Test cases for PlatformInfo class."""
 
-    def test_initialization(self):
+    def test_initialization(self) -> None:
         """Test PlatformInfo initialization detects platform correctly."""
         info = PlatformInfo()
 
@@ -46,7 +46,7 @@ class TestPlatformInfo:
         assert hasattr(info, "is_x86")
         assert hasattr(info, "is_arm")
 
-    def test_command_detection(self):
+    def test_command_detection(self) -> None:
         """Test that command availability detection works."""
         info = PlatformInfo()
 
@@ -56,7 +56,7 @@ class TestPlatformInfo:
         assert isinstance(info.has_git, bool)
         assert isinstance(info.has_ping, bool)
 
-    def test_path_separator(self):
+    def test_path_separator(self) -> None:
         """Test platform-specific path separator."""
         info = PlatformInfo()
         separator = info.get_path_separator()
@@ -66,7 +66,7 @@ class TestPlatformInfo:
         else:
             assert separator == ":"
 
-    def test_executable_extension(self):
+    def test_executable_extension(self) -> None:
         """Test platform-specific executable extension."""
         info = PlatformInfo()
         ext = info.get_executable_extension()
@@ -76,13 +76,13 @@ class TestPlatformInfo:
         else:
             assert ext == ""
 
-    def test_unicode_support(self):
+    def test_unicode_support(self) -> None:
         """Test Unicode support detection."""
         info = PlatformInfo()
         supports_unicode = info.supports_unicode()
         assert isinstance(supports_unicode, bool)
 
-    def test_directory_methods(self):
+    def test_directory_methods(self) -> None:
         """Test directory-related methods."""
         info = PlatformInfo()
 
@@ -102,7 +102,7 @@ class TestPlatformInfo:
 class TestCrossPlatformCommand:
     """Test cases for CrossPlatformCommand class."""
 
-    def test_ping_command_windows(self):
+    def test_ping_command_windows(self) -> None:
         """Test ping command generation for Windows."""
         with patch("run_bitcoin_tests.cross_platform_utils.PlatformInfo") as mock_platform:
             mock_platform.return_value.is_windows = True
@@ -110,7 +110,7 @@ class TestCrossPlatformCommand:
             ping_cmd = cmd.get_ping_command("example.com", 5)
             assert ping_cmd == ["ping", "-n", "1", "-w", "5000", "example.com"]
 
-    def test_ping_command_unix(self):
+    def test_ping_command_unix(self) -> None:
         """Test ping command generation for Unix-like systems."""
         with patch("run_bitcoin_tests.cross_platform_utils.PlatformInfo") as mock_platform:
             mock_platform.return_value.is_windows = False
@@ -119,7 +119,7 @@ class TestCrossPlatformCommand:
             assert ping_cmd == ["ping", "-c", "1", "-W", "3", "example.com"]
 
     @patch("run_bitcoin_tests.cross_platform_utils.CrossPlatformCommand._check_command_exists")
-    def test_docker_compose_command_preference(self, mock_check):
+    def test_docker_compose_command_preference(self, mock_check: Mock) -> None:
         """Test docker compose command preference."""
         cmd = CrossPlatformCommand()
 
@@ -133,7 +133,7 @@ class TestCrossPlatformCommand:
         result = cmd.get_docker_compose_command()
         assert result == ["docker-compose"]
 
-    def test_docker_compose_command_not_found(self):
+    def test_docker_compose_command_not_found(self) -> None:
         """Test docker compose command when neither is available."""
         cmd = CrossPlatformCommand()
 
@@ -143,7 +143,7 @@ class TestCrossPlatformCommand:
             ):
                 cmd.get_docker_compose_command()
 
-    def test_normalize_command_args_windows(self):
+    def test_normalize_command_args_windows(self) -> None:
         """Test command argument normalization on Windows."""
         with patch("run_bitcoin_tests.cross_platform_utils.PlatformInfo") as mock_platform:
             mock_platform.return_value.is_windows = True
@@ -155,7 +155,7 @@ class TestCrossPlatformCommand:
             expected = ["git", "clone", "https://example.com/repo", "--branch", "main"]
             assert normalized == expected
 
-    def test_normalize_command_args_unix(self):
+    def test_normalize_command_args_unix(self) -> None:
         """Test command argument normalization on Unix."""
         with patch("run_bitcoin_tests.cross_platform_utils.PlatformInfo") as mock_platform:
             mock_platform.return_value.is_windows = False
@@ -169,18 +169,18 @@ class TestCrossPlatformCommand:
 class TestPathUtils:
     """Test cases for PathUtils class."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.temp_dir = Path(tempfile.mkdtemp())
         self.path_utils = PathUtils()
 
-    def teardown_method(self):
+    def teardown_method(self) -> None:
         """Clean up test fixtures."""
         import shutil
 
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def test_normalize_path(self):
+    def test_normalize_path(self) -> None:
         """Test path normalization."""
         # Test with regular path
         path = self.temp_dir / "test" / "file.txt"
@@ -193,14 +193,14 @@ class TestPathUtils:
             normalized_home = self.path_utils.normalize_path(home_path)
             assert isinstance(normalized_home, Path)
 
-    def test_ensure_directory(self):
+    def test_ensure_directory(self) -> None:
         """Test directory creation."""
         test_dir = self.temp_dir / "new_test_dir" / "subdir"
         result = self.path_utils.ensure_directory(test_dir)
         assert result.exists()
         assert result.is_dir()
 
-    def test_is_safe_path(self):
+    def test_is_safe_path(self) -> None:
         """Test safe path validation."""
         base_dir = self.temp_dir / "base"
         base_dir.mkdir()
@@ -221,7 +221,7 @@ class TestPathUtils:
             outside_abs = Path("/tmp/outside.txt")
             assert not self.path_utils.is_safe_path(outside_abs, base_dir)
 
-    def test_get_relative_path(self):
+    def test_get_relative_path(self) -> None:
         """Test relative path calculation."""
         base_dir = self.temp_dir / "base"
         base_dir.mkdir()
@@ -243,7 +243,7 @@ class TestPathUtils:
 class TestGlobalFunctions:
     """Test global functions in cross_platform_utils."""
 
-    def test_get_platform_info_singleton(self):
+    def test_get_platform_info_singleton(self) -> None:
         """Test that get_platform_info returns singleton."""
         info1 = get_platform_info()
         info2 = get_platform_info()
@@ -251,7 +251,7 @@ class TestGlobalFunctions:
         assert info1 is info2
         assert isinstance(info1, PlatformInfo)
 
-    def test_get_cross_platform_command_singleton(self):
+    def test_get_cross_platform_command_singleton(self) -> None:
         """Test that get_cross_platform_command returns singleton."""
         cmd1 = get_cross_platform_command()
         cmd2 = get_cross_platform_command()
@@ -259,7 +259,7 @@ class TestGlobalFunctions:
         assert cmd1 is cmd2
         assert isinstance(cmd1, CrossPlatformCommand)
 
-    def test_get_path_utils_singleton(self):
+    def test_get_path_utils_singleton(self) -> None:
         """Test that get_path_utils returns singleton."""
         utils1 = get_path_utils()
         utils2 = get_path_utils()
@@ -267,7 +267,7 @@ class TestGlobalFunctions:
         assert utils1 is utils2
         assert isinstance(utils1, PathUtils)
 
-    def test_is_cross_platform_compatible(self):
+    def test_is_cross_platform_compatible(self) -> None:
         """Test cross-platform compatibility check."""
         results = is_cross_platform_compatible()
 
@@ -289,7 +289,7 @@ class TestGlobalFunctions:
 class TestIntegration:
     """Integration tests for cross-platform utilities."""
 
-    def test_platform_info_consistency(self):
+    def test_platform_info_consistency(self) -> None:
         """Test that platform info is consistent across calls."""
         info1 = get_platform_info()
         info2 = get_platform_info()
@@ -299,7 +299,7 @@ class TestIntegration:
         assert info1.is_linux == info2.is_linux
         assert info1.is_macos == info2.is_macos
 
-    def test_cross_platform_workflow(self):
+    def test_cross_platform_workflow(self) -> None:
         """Test a complete cross-platform workflow."""
         # Get platform info
         info = get_platform_info()
@@ -317,7 +317,7 @@ class TestIntegration:
         normalized = path_utils.normalize_path(test_path)
         assert isinstance(normalized, Path)
 
-    def test_environment_compatibility(self):
+    def test_environment_compatibility(self) -> None:
         """Test that the utilities work in the current environment."""
         compatibility = is_cross_platform_compatible()
 
@@ -329,7 +329,7 @@ class TestIntegration:
         assert compatibility.get("python_version_compatible", False)
 
     @patch("subprocess.run")
-    def test_check_command_timeout(self, mock_run):
+    def test_check_command_timeout(self, mock_run) -> None:
         """Test _check_command handles timeout exceptions."""
         mock_run.side_effect = subprocess.TimeoutExpired("timeout", 5)
 
@@ -339,7 +339,7 @@ class TestIntegration:
         assert result is False
 
     @patch("subprocess.run")
-    def test_check_command_file_not_found(self, mock_run):
+    def test_check_command_file_not_found(self, mock_run) -> None:
         """Test _check_command handles FileNotFoundError."""
         mock_run.side_effect = FileNotFoundError("command not found")
 
@@ -349,7 +349,7 @@ class TestIntegration:
         assert result is False
 
     @patch("subprocess.run")
-    def test_check_command_os_error(self, mock_run):
+    def test_check_command_os_error(self, mock_run) -> None:
         """Test _check_command handles OSError."""
         mock_run.side_effect = OSError("permission denied")
 
@@ -359,7 +359,7 @@ class TestIntegration:
         assert result is False
 
     @patch("subprocess.run")
-    def test_check_command_success(self, mock_run):
+    def test_check_command_success(self, mock_run) -> None:
         """Test _check_command returns True for successful execution."""
         mock_run.return_value = Mock(returncode=0)
 
@@ -369,7 +369,7 @@ class TestIntegration:
         assert result is True
 
     @patch("ctypes.windll.kernel32.GetConsoleOutputCP")
-    def test_supports_unicode_windows_success(self, mock_get_console_cp):
+    def test_supports_unicode_windows_success(self, mock_get_console_cp) -> None:
         """Test supports_unicode on Windows with successful ctypes call."""
         mock_get_console_cp.return_value = 65001  # UTF-8 codepage
 
@@ -380,7 +380,7 @@ class TestIntegration:
         assert result is True
 
     @patch("ctypes.windll.kernel32.GetConsoleOutputCP")
-    def test_supports_unicode_windows_returns_false(self, mock_get_console_cp):
+    def test_supports_unicode_windows_returns_false(self, mock_get_console_cp) -> None:
         """Test supports_unicode on Windows with ctypes returning 0."""
         mock_get_console_cp.return_value = 0
 
@@ -391,7 +391,7 @@ class TestIntegration:
         assert result is False
 
     @patch("ctypes.windll.kernel32.GetConsoleOutputCP", side_effect=AttributeError)
-    def test_supports_unicode_windows_exception(self, mock_get_console_cp):
+    def test_supports_unicode_windows_exception(self, mock_get_console_cp) -> None:
         """Test supports_unicode on Windows handles ctypes exceptions."""
         info = PlatformInfo()
         info.is_windows = True
@@ -400,7 +400,7 @@ class TestIntegration:
         assert result is False
 
     @patch("ctypes.windll.kernel32.GetConsoleOutputCP", side_effect=OSError)
-    def test_supports_unicode_windows_os_error(self, mock_get_console_cp):
+    def test_supports_unicode_windows_os_error(self, mock_get_console_cp) -> None:
         """Test supports_unicode on Windows handles OSError."""
         info = PlatformInfo()
         info.is_windows = True
@@ -408,7 +408,7 @@ class TestIntegration:
         result = info.supports_unicode()
         assert result is False  # Should return False due to exception
 
-    def test_supports_unicode_non_windows(self):
+    def test_supports_unicode_non_windows(self) -> None:
         """Test supports_unicode on non-Windows platforms."""
         info = PlatformInfo()
         info.is_windows = False
@@ -416,7 +416,7 @@ class TestIntegration:
         result = info.supports_unicode()
         assert result is True
 
-    def test_get_temp_directory_windows(self):
+    def test_get_temp_directory_windows(self) -> None:
         """Test get_temp_directory on Windows."""
         info = PlatformInfo()
         info.is_windows = True
@@ -424,7 +424,7 @@ class TestIntegration:
         result = info.get_temp_directory()
         assert isinstance(result, Path)
 
-    def test_get_temp_directory_unix(self):
+    def test_get_temp_directory_unix(self) -> None:
         """Test get_temp_directory on Unix-like systems."""
         info = PlatformInfo()
         info.is_windows = False
@@ -432,7 +432,7 @@ class TestIntegration:
         result = info.get_temp_directory()
         assert result == Path("/tmp")
 
-    def test_get_cache_directory_windows_with_localappdata(self):
+    def test_get_cache_directory_windows_with_localappdata(self) -> None:
         """Test get_cache_directory on Windows with LOCALAPPDATA set."""
         info = PlatformInfo()
         info.is_windows = True
@@ -442,7 +442,7 @@ class TestIntegration:
             result = info.get_cache_directory()
             assert result == Path("C:\\Users\\Test\\AppData\\Local\\bitcoin-tests")
 
-    def test_get_cache_directory_windows_without_localappdata(self):
+    def test_get_cache_directory_windows_without_localappdata(self) -> None:
         """Test get_cache_directory on Windows without LOCALAPPDATA."""
         info = PlatformInfo()
         info.is_windows = True
@@ -455,7 +455,7 @@ class TestIntegration:
             result = info.get_cache_directory()
             assert result == Path("C:\\Users\\Test\\AppData\\Local\\bitcoin-tests")
 
-    def test_get_cache_directory_macos(self):
+    def test_get_cache_directory_macos(self) -> None:
         """Test get_cache_directory on macOS."""
         info = PlatformInfo()
         info.is_windows = False
@@ -465,7 +465,7 @@ class TestIntegration:
             result = info.get_cache_directory()
             assert result == Path("/Users/test/Library/Caches/bitcoin-tests")
 
-    def test_get_cache_directory_linux_with_xdg_cache_home(self):
+    def test_get_cache_directory_linux_with_xdg_cache_home(self) -> None:
         """Test get_cache_directory on Linux with XDG_CACHE_HOME set."""
         info = PlatformInfo()
         info.is_windows = False
@@ -475,7 +475,7 @@ class TestIntegration:
             result = info.get_cache_directory()
             assert result == Path("/home/test/.cache/bitcoin-tests")
 
-    def test_get_cache_directory_linux_without_xdg_cache_home(self):
+    def test_get_cache_directory_linux_without_xdg_cache_home(self) -> None:
         """Test get_cache_directory on Linux without XDG_CACHE_HOME."""
         info = PlatformInfo()
         info.is_windows = False

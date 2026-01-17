@@ -20,7 +20,7 @@ class TestPrintColoredHypothesis:
         color=st.sampled_from(["RED", "GREEN", "YELLOW", "CYAN", "WHITE", ""]),
         bright=st.booleans(),
     )
-    def test_print_colored_various_inputs(self, message, color, bright, capsys):
+    def test_print_colored_various_inputs(self, message, color, bright, capsys) -> None:
         """Test print_colored with various text inputs, colors, and bright settings."""
         print_colored(message, color, bright)
         captured = capsys.readouterr()
@@ -33,7 +33,7 @@ class TestRunCommandHypothesis:
     """Property-based tests for run_command function."""
 
     @given(command=st.lists(st.text(min_size=1), min_size=1, max_size=5), description=st.text())
-    def test_run_command_various_commands(self, command, description):
+    def test_run_command_various_commands(self, command, description) -> None:
         """Test run_command with various command lists and descriptions."""
         mock_result = Mock()
         mock_result.returncode = 0
@@ -54,7 +54,7 @@ class TestArgumentsHypothesis:
             lambda x: x.strip() == x and len(x) > 0 and not x.startswith("-")
         ),
     )
-    def test_parse_arguments_various_urls_and_branches(self, repo_url, branch):
+    def test_parse_arguments_various_urls_and_branches(self, repo_url, branch) -> None:
         """Test argument parsing with various valid URLs and branch names."""
         from run_bitcoin_tests.main import parse_arguments
         from run_bitcoin_tests.validation import ValidationError
@@ -80,7 +80,7 @@ class TestCloneRepoHypothesis:
         repo_url=st.from_regex(r"https?://[^\s/$.?#].[^\s]*", fullmatch=True),
         branch=st.text(min_size=1, max_size=50).filter(lambda x: x.strip() == x and len(x) > 0),
     )
-    def test_clone_bitcoin_repo_various_inputs(self, repo_url, branch):
+    def test_clone_bitcoin_repo_various_inputs(self, repo_url, branch) -> None:
         """Test clone_bitcoin_repo with various repository URLs and branches."""
         from run_bitcoin_tests.main import clone_bitcoin_repo
 
@@ -107,7 +107,7 @@ class TestPrerequisitesHypothesis:
         repo_url=st.from_regex(r"https?://[^\s/$.?#].[^\s]*", fullmatch=True),
         branch=st.text(min_size=1, max_size=50).filter(lambda x: x.strip() == x and len(x) > 0),
     )
-    def test_check_prerequisites_various_inputs(self, repo_url, branch):
+    def test_check_prerequisites_various_inputs(self, repo_url, branch) -> None:
         """Test check_prerequisites with various repository URLs and branches."""
         from run_bitcoin_tests.main import check_prerequisites
 

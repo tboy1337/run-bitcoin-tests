@@ -2,15 +2,16 @@
 
 import sys
 from pathlib import Path
-from unittest.mock import Mock
+from typing import Generator
+from unittest.mock import Mock, patch
 
 import pytest
 
 
 @pytest.fixture
-def mock_subprocess_run():
+def mock_subprocess_run() -> Generator[Mock, None, None]:
     """Mock for subprocess.run that returns a successful result."""
-    with pytest.mock.patch("subprocess.run") as mock_run:
+    with patch("subprocess.run") as mock_run:
         mock_result = Mock()
         mock_result.returncode = 0
         mock_result.stdout = ""
@@ -20,29 +21,29 @@ def mock_subprocess_run():
 
 
 @pytest.fixture
-def mock_path_exists():
+def mock_path_exists() -> Generator[None, None, None]:
     """Mock for Path that simulates all files existing."""
 
-    def mock_exists(self):
+    def mock_exists(self: Path) -> bool:
         return True
 
-    with pytest.mock.patch.object(Path, "exists", mock_exists):
+    with patch.object(Path, "exists", mock_exists):
         yield
 
 
 @pytest.fixture
-def mock_path_not_exists():
+def mock_path_not_exists() -> Generator[None, None, None]:
     """Mock for Path that simulates no files existing."""
 
-    def mock_exists(self):
+    def mock_exists(self: Path) -> bool:
         return False
 
-    with pytest.mock.patch.object(Path, "exists", mock_exists):
+    with patch.object(Path, "exists", mock_exists):
         yield
 
 
 @pytest.fixture
-def temp_working_directory(tmp_path):
+def temp_working_directory(tmp_path: Path) -> Generator[Path, None, None]:
     """Change to a temporary directory for the test."""
     original_cwd = Path.cwd()
     try:
@@ -55,7 +56,7 @@ def temp_working_directory(tmp_path):
 
 
 @pytest.fixture(autouse=True)
-def reset_modules():
+def reset_modules() -> Generator[None, None, None]:
     """Reset imported modules between tests to ensure clean state."""
     modules_to_reset = [
         "run_bitcoin_tests.main",

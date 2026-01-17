@@ -105,7 +105,7 @@ class TestIntegration:
 class TestCommandLineInterface:
     """Test the command line interface."""
 
-    def test_script_execution_help(self):
+    def test_script_execution_help(self) -> None:
         """Test that the script can display help."""
         result = subprocess.run(
             [sys.executable, "run-bitcoin-tests.py", "--help"],
@@ -119,7 +119,7 @@ class TestCommandLineInterface:
         assert "--repo-url" in result.stdout
         assert "--branch" in result.stdout
 
-    def test_module_execution_help(self):
+    def test_module_execution_help(self) -> None:
         """Test that the module can be executed with help."""
         result = subprocess.run(
             [sys.executable, "-m", "run_bitcoin_tests", "--help"],
@@ -137,7 +137,7 @@ class TestErrorScenarios:
 
     @patch("run_bitcoin_tests.main.get_config")
     @patch("run_bitcoin_tests.main.Path")
-    def test_prerequisites_failure_calls_cleanup_indirectly(self, mock_path, mock_get_config):
+    def test_prerequisites_failure_calls_cleanup_indirectly(self, mock_path, mock_get_config) -> None:
         """Test that prerequisites failure would trigger cleanup (integration test)."""
         # This is a conceptual test - in real usage, sys.exit() calls from individual
         # functions would exit the program. Here we test that the functions work as expected.
@@ -160,7 +160,7 @@ class TestErrorScenarios:
 
             check_prerequisites()
 
-    def test_build_failure_calls_cleanup_indirectly(self):
+    def test_build_failure_calls_cleanup_indirectly(self) -> None:
         """Test that build failure would trigger cleanup (integration test)."""
         # Similar to above - testing the function behavior directly
         from run_bitcoin_tests.main import build_docker_image

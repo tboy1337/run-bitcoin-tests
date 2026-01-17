@@ -23,10 +23,12 @@ import multiprocessing
 import os
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
+from typing import Callable, Dict, List, Optional, Tuple, TypeVar, Union
 
 import psutil
+
+T = TypeVar('T')
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +51,7 @@ class PerformanceMonitor:
         self.interval = interval
         self._monitoring = False
         self._thread: Optional[threading.Thread] = None
-        self._metrics: List[Dict[str, Any]] = []
+        self._metrics: List[Dict[str, Union[float, int, str, None, Tuple[float, float, float]]]] = []
         self._lock = threading.Lock()
 
     def start_monitoring(self) -> None:
@@ -62,7 +64,7 @@ class PerformanceMonitor:
         self._thread.start()
         logger.debug("Performance monitoring started")
 
-    def stop_monitoring(self) -> List[Dict[str, Any]]:
+    def stop_monitoring(self) -> List[Dict[str, Union[float, int, str, None, Tuple[float, float, float]]]]:
         """Stop monitoring and return collected metrics."""
         if not self._monitoring:
             return self._metrics.copy()
@@ -90,7 +92,7 @@ class PerformanceMonitor:
 
             time.sleep(self.interval)
 
-    def _collect_metrics(self) -> Dict[str, Any]:
+    def _collect_metrics(self) -> Dict[str, Union[float, int, str, None, Tuple[float, float, float]]]:
         """Collect current system performance metrics."""
         try:
             cpu_percent = psutil.cpu_percent(interval=None)
@@ -163,7 +165,8 @@ class ResourceOptimizer:
                 pass
             else:
                 # On Unix-like systems, try to set nice level
-                os.nice(-5)  # Slightly higher priority  # pylint: disable=no-member
+                if hasattr(os, 'nice'):
+                    os.nice(-5)  # Slightly higher priority
         except Exception:
             pass  # Ignore if we can't set priority
 
@@ -175,7 +178,7 @@ class ResourceOptimizer:
         gc.collect()
 
     @staticmethod
-    def get_system_info() -> Dict[str, Any]:
+    def get_system_info() -> Dict[str, Union[int, float, str, None]]:
         """Get comprehensive system information for optimization decisions."""
         try:
             import platform  # pylint: disable=import-outside-toplevel,reimported
@@ -215,16 +218,18 @@ class ParallelExecutor:
         self.max_workers = max_workers
         self._executor: Optional[ThreadPoolExecutor] = None
 
-    def __enter__(self):
+    def __enter__(self) -> "ParallelExecutor":
         self._executor = ThreadPoolExecutor(max_workers=self.max_workers)
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: object, exc_val: object, exc_tb: object) -> None:
         if self._executor:
             self._executor.shutdown(wait=True)
             self._executor = None
 
-    def execute_parallel(self, tasks: List[Tuple[Callable, Tuple, Dict]]) -> List[Any]:
+    def execute_parallel(  # type: ignore[explicit-any]  # Callable[...] needed for generic task execution
+        self, tasks: List[Tuple[Callable[..., T], Tuple[object, ...], Dict[str, object]]]
+    ) -> List[Optional[T]]:
         """
         Execute tasks in parallel.
 
@@ -238,13 +243,13 @@ class ParallelExecutor:
             raise RuntimeError("ParallelExecutor must be used as context manager")
 
         # Submit all tasks
-        futures = []
+        futures: List[Future[T]] = []
         for func, args, kwargs in tasks:
             future = self._executor.submit(func, *args, **kwargs)
             futures.append(future)
 
         # Collect results in order
-        results = []
+        results: List[Optional[T]] = []
         for future in futures:
             try:
                 result = future.result()
@@ -255,7 +260,7 @@ class ParallelExecutor:
 
         return results
 
-    def map_parallel(self, func: Callable, items: List[Any]) -> List[Any]:
+    def map_parallel(self, func: Callable[[T], object], items: List[T]) -> List[Optional[object]]:
         """
         Apply function to all items in parallel.
 
@@ -334,7 +339,7 @@ def optimize_system_resources() -> None:
         logger.warning("System optimization failed: %s", exc)
 
 
-def with_performance_monitoring(func: Callable) -> Callable:
+def with_performance_monitoring(func: Callable[..., T]) -> Callable[..., T]:  # type: ignore[explicit-any]  # Callable[...] needed for generic decorator
     """
     Decorator to monitor performance during function execution.
 
@@ -345,7 +350,7 @@ def with_performance_monitoring(func: Callable) -> Callable:
         Wrapped function that monitors performance
     """
 
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: object, **kwargs: object) -> T:
         monitor = get_performance_monitor()
         monitor.start_monitoring()
 
@@ -355,8 +360,8 @@ def with_performance_monitoring(func: Callable) -> Callable:
         finally:
             metrics = monitor.stop_monitoring()
             if metrics:
-                cpu_metrics = [m["cpu_percent"] for m in metrics if "cpu_percent" in m]
-                memory_metrics = [m["memory_percent"] for m in metrics if "memory_percent" in m]
+                cpu_metrics = [float(m["cpu_percent"]) for m in metrics if "cpu_percent" in m and isinstance(m["cpu_percent"], (int, float))]
+                memory_metrics = [float(m["memory_percent"]) for m in metrics if "memory_percent" in m and isinstance(m["memory_percent"], (int, float))]
                 if cpu_metrics and memory_metrics:
                     avg_cpu = sum(cpu_metrics) / len(cpu_metrics)
                     avg_memory = sum(memory_metrics) / len(memory_metrics)

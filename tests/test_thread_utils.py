@@ -24,33 +24,33 @@ from run_bitcoin_tests.thread_utils import (
 class TestThreadSafeCounter:
     """Test thread-safe counter functionality."""
 
-    def test_initial_value(self):
+    def test_initial_value(self) -> None:
         """Test counter initializes with correct value."""
         counter = ThreadSafeCounter(5)
         assert counter.get_value() == 5
 
-    def test_increment(self):
+    def test_increment(self) -> None:
         """Test increment operation."""
         counter = ThreadSafeCounter()
         assert counter.increment() == 1
         assert counter.increment() == 2
         assert counter.get_value() == 2
 
-    def test_decrement(self):
+    def test_decrement(self) -> None:
         """Test decrement operation."""
         counter = ThreadSafeCounter(10)
         assert counter.decrement() == 9
         assert counter.decrement() == 8
         assert counter.get_value() == 8
 
-    def test_reset(self):
+    def test_reset(self) -> None:
         """Test reset operation."""
         counter = ThreadSafeCounter(5)
         counter.increment()
         counter.reset()
         assert counter.get_value() == 0
 
-    def test_thread_safety(self):
+    def test_thread_safety(self) -> None:
         """Test counter works correctly with multiple threads."""
         counter = ThreadSafeCounter()
 
@@ -77,7 +77,7 @@ class TestThreadSafeCounter:
 class TestResourceTracker:
     """Test resource tracker functionality."""
 
-    def test_register_and_get_resource(self):
+    def test_register_and_get_resource(self) -> None:
         """Test registering and retrieving resources."""
         tracker = ResourceTracker()
 
@@ -87,7 +87,7 @@ class TestResourceTracker:
         retrieved = tracker.get_resource("test_resource")
         assert retrieved == resource
 
-    def test_unregister_resource(self):
+    def test_unregister_resource(self) -> None:
         """Test unregistering resources."""
         tracker = ResourceTracker()
 
@@ -99,7 +99,7 @@ class TestResourceTracker:
         tracker.unregister_resource("test_resource")
         assert tracker.get_resource("test_resource") is None
 
-    def test_list_resources(self):
+    def test_list_resources(self) -> None:
         """Test listing tracked resources."""
         tracker = ResourceTracker()
 
@@ -111,7 +111,7 @@ class TestResourceTracker:
         assert "res2" in resources
         assert len(resources) == 2
 
-    def test_cleanup_resources(self):
+    def test_cleanup_resources(self) -> None:
         """Test cleanup of all resources."""
         tracker = ResourceTracker()
 
@@ -131,7 +131,7 @@ class TestResourceTracker:
         resource2.cleanup.assert_called_once()
 
     @patch("run_bitcoin_tests.thread_utils.logger")
-    def test_cleanup_resources_with_exceptions(self, mock_logger):
+    def test_cleanup_resources_with_exceptions(self, mock_logger) -> None:
         """Test cleanup handles exceptions in resource cleanup methods."""
         tracker = ResourceTracker()
 
@@ -161,7 +161,7 @@ class TestResourceTracker:
 class TestAtomicDirectoryOperation:
     """Test atomic directory operations."""
 
-    def test_create_new_directory(self):
+    def test_create_new_directory(self) -> None:
         """Test creating a new directory atomically."""
         with tempfile.TemporaryDirectory() as temp_dir:
             test_dir = Path(temp_dir) / "test_atomic_dir"
@@ -175,7 +175,7 @@ class TestAtomicDirectoryOperation:
             # Directory should still exist after context
             assert test_dir.exists()
 
-    def test_existing_directory(self):
+    def test_existing_directory(self) -> None:
         """Test operation on existing directory."""
         with tempfile.TemporaryDirectory() as temp_dir:
             test_dir = Path(temp_dir) / "existing_dir"
@@ -187,7 +187,7 @@ class TestAtomicDirectoryOperation:
                 assert test_dir.exists()
                 assert test_dir.is_dir()
 
-    def test_nested_directories(self):
+    def test_nested_directories(self) -> None:
         """Test creating nested directories."""
         with tempfile.TemporaryDirectory() as temp_dir:
             nested_dir = Path(temp_dir) / "level1" / "level2" / "level3"
@@ -201,7 +201,7 @@ class TestAtomicDirectoryOperation:
             assert nested_dir.exists()
 
     @patch("run_bitcoin_tests.thread_utils.logger")
-    def test_atomic_directory_operation_exception_handling(self, mock_logger):
+    def test_atomic_directory_operation_exception_handling(self, mock_logger) -> None:
         """Test atomic directory operation handles exceptions properly."""
         import os
         from pathlib import Path
@@ -222,7 +222,7 @@ class TestAtomicDirectoryOperation:
 class TestThreadSafeTempDir:
     """Test thread-safe temporary directory creation."""
 
-    def test_create_temp_dir(self):
+    def test_create_temp_dir(self) -> None:
         """Test creating a thread-safe temporary directory."""
         with thread_safe_temp_dir(prefix="test_") as temp_dir:
             assert temp_dir.exists()
@@ -237,7 +237,7 @@ class TestThreadSafeTempDir:
         # Directory should be cleaned up after context
         assert not temp_dir.exists()
 
-    def test_temp_dir_with_suffix(self):
+    def test_temp_dir_with_suffix(self) -> None:
         """Test temp directory with custom suffix."""
         with thread_safe_temp_dir(prefix="pre_", suffix="_suf") as temp_dir:
             assert temp_dir.name.startswith("pre_")
@@ -245,7 +245,7 @@ class TestThreadSafeTempDir:
 
     @patch("run_bitcoin_tests.thread_utils.logger")
     @patch("tempfile.mkdtemp", side_effect=OSError("Permission denied"))
-    def test_thread_safe_temp_dir_exception_handling(self, mock_mkdtemp, mock_logger):
+    def test_thread_safe_temp_dir_exception_handling(self, mock_mkdtemp, mock_logger) -> None:
         """Test thread_safe_temp_dir handles exceptions properly."""
         with pytest.raises(OSError):
             with thread_safe_temp_dir():
@@ -256,7 +256,7 @@ class TestThreadSafeTempDir:
 
     @patch("run_bitcoin_tests.thread_utils.logger")
     @patch("tempfile.mkdtemp", side_effect=OSError("Failed to create temp directory"))
-    def test_thread_safe_temp_dir_creation_failure(self, mock_mkdtemp, mock_logger):
+    def test_thread_safe_temp_dir_creation_failure(self, mock_mkdtemp, mock_logger) -> None:
         """Test temp dir handles creation failure properly."""
         with pytest.raises(OSError):
             with thread_safe_temp_dir():
@@ -269,7 +269,7 @@ class TestThreadSafeTempDir:
 class TestCleanupHandlers:
     """Test cleanup handler registration and execution."""
 
-    def test_register_and_cleanup(self):
+    def test_register_and_cleanup(self) -> None:
         """Test registering and running cleanup handlers."""
         cleanup_called = []
 
@@ -283,7 +283,7 @@ class TestCleanupHandlers:
 
         assert len(cleanup_called) == 1
 
-    def test_unregister_handler(self):
+    def test_unregister_handler(self) -> None:
         """Test unregistering cleanup handlers."""
         cleanup_called = []
 
@@ -302,7 +302,7 @@ class TestCleanupHandlers:
 class TestFileSystemLock:
     """Test file system locking."""
 
-    def test_file_system_lock_basic(self):
+    def test_file_system_lock_basic(self) -> None:
         """Test basic file system lock operation."""
         lock_acquired = []
 
@@ -314,7 +314,7 @@ class TestFileSystemLock:
 
         assert len(lock_acquired) == 1
 
-    def test_file_system_lock_timeout(self):
+    def test_file_system_lock_timeout(self) -> None:
         """Test file system lock timeout behavior."""
         # This is hard to test directly without complex threading,
         # but the lock should work with reasonable timeout
@@ -325,7 +325,7 @@ class TestFileSystemLock:
 class TestDockerContainerLock:
     """Test Docker container locking."""
 
-    def test_docker_lock_basic(self):
+    def test_docker_lock_basic(self) -> None:
         """Test basic Docker container lock operation."""
         lock_acquired = []
 
@@ -337,7 +337,7 @@ class TestDockerContainerLock:
 
         assert len(lock_acquired) == 1
 
-    def test_docker_lock_without_container(self):
+    def test_docker_lock_without_container(self) -> None:
         """Test Docker lock without specifying container name."""
         lock_acquired = []
 
@@ -350,7 +350,7 @@ class TestDockerContainerLock:
         assert len(lock_acquired) == 1
 
     @patch("run_bitcoin_tests.thread_utils._docker_lock")
-    def test_docker_lock_timeout(self, mock_lock):
+    def test_docker_lock_timeout(self, mock_lock) -> None:
         """Test Docker lock timeout raises TimeoutError."""
         # Mock the lock to not acquire
         mock_lock.acquire.return_value = False
@@ -365,7 +365,7 @@ class TestEmergencyCleanup:
 
     @patch("run_bitcoin_tests.thread_utils._force_remove_container")
     @patch("run_bitcoin_tests.thread_utils._force_remove_temp_dir")
-    def test_emergency_cleanup(self, mock_remove_temp, mock_remove_container):
+    def test_emergency_cleanup(self, mock_remove_temp, mock_remove_container) -> None:
         """Test emergency cleanup calls appropriate functions."""
         # Add some mock containers and temp dirs to the global sets
         from run_bitcoin_tests.thread_utils import _active_containers, _temp_directories
@@ -385,7 +385,7 @@ class TestEmergencyCleanup:
         assert len(_temp_directories) == 0
 
     @patch("run_bitcoin_tests.thread_utils.logger")
-    def test_emergency_cleanup_exception_handling(self, mock_logger):
+    def test_emergency_cleanup_exception_handling(self, mock_logger) -> None:
         """Test emergency cleanup handles exceptions gracefully."""
         from run_bitcoin_tests.thread_utils import _active_containers, _temp_directories
 

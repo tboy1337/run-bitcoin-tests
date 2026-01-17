@@ -24,14 +24,14 @@ from run_bitcoin_tests.main import (
 class TestPrintColored:
     """Test print_colored function."""
 
-    def test_print_colored_with_colorama(self, capsys):
+    def test_print_colored_with_colorama(self, capsys) -> None:
         """Test print_colored with colorama available."""
         with patch("run_bitcoin_tests.main.colorama"):
             print_colored("test message", "RED", bright=True)
             captured = capsys.readouterr()
             assert "test message" in captured.out
 
-    def test_print_colored_without_colorama(self, capsys):
+    def test_print_colored_without_colorama(self, capsys) -> None:
         """Test print_colored without colorama (fallback)."""
         # Test that the fallback classes work by directly testing the fallback logic
         # The colorama import happens at module level, so we test the fallback behavior
@@ -48,7 +48,7 @@ class TestRunCommand:
     """Test run_command function."""
 
     @patch("subprocess.run")
-    def test_run_command_success(self, mock_run, capsys):
+    def test_run_command_success(self, mock_run, capsys) -> None:
         """Test successful command execution."""
         mock_result = Mock()
         mock_result.returncode = 0
@@ -62,7 +62,7 @@ class TestRunCommand:
         )
 
     @patch("subprocess.run")
-    def test_run_command_file_not_found(self, mock_run, capsys):
+    def test_run_command_file_not_found(self, mock_run, capsys) -> None:
         """Test command execution when command is not found."""
         mock_run.side_effect = FileNotFoundError("Command not found")
 
@@ -72,7 +72,7 @@ class TestRunCommand:
         assert exc_info.value.code == 1
 
     @patch("subprocess.run")
-    def test_run_command_generic_exception(self, mock_run, capsys):
+    def test_run_command_generic_exception(self, mock_run, capsys) -> None:
         """Test command execution with generic exception."""
         mock_run.side_effect = Exception("Generic error")
 
@@ -86,7 +86,7 @@ class TestCloneBitcoinRepo:
     """Test clone_bitcoin_repo function."""
 
     @patch("run_bitcoin_tests.main.clone_bitcoin_repo_enhanced")
-    def test_clone_repo_already_exists(self, mock_clone_enhanced, capsys):
+    def test_clone_repo_already_exists(self, mock_clone_enhanced, capsys) -> None:
         """Test when bitcoin directory already exists."""
         clone_bitcoin_repo("https://github.com/bitcoin/bitcoin", "master")
 
@@ -99,7 +99,7 @@ class TestCloneBitcoinRepo:
         )
 
     @patch("run_bitcoin_tests.main.clone_bitcoin_repo_enhanced")
-    def test_clone_repo_success(self, mock_clone_enhanced, capsys):
+    def test_clone_repo_success(self, mock_clone_enhanced, capsys) -> None:
         """Test successful repository cloning."""
         # Mock the enhanced clone function to not raise an exception
         mock_clone_enhanced.return_value = None
@@ -115,7 +115,7 @@ class TestCloneBitcoinRepo:
         )
 
     @patch("run_bitcoin_tests.main.clone_bitcoin_repo_enhanced")
-    def test_clone_repo_failure(self, mock_clone_enhanced, capsys):
+    def test_clone_repo_failure(self, mock_clone_enhanced, capsys) -> None:
         """Test repository cloning failure."""
         # Mock the enhanced clone function to raise an exception
         mock_clone_enhanced.side_effect = Exception("Clone failed")
@@ -132,7 +132,7 @@ class TestCloneBitcoinRepo:
         )
 
     @patch("run_bitcoin_tests.main.clone_bitcoin_repo_enhanced")
-    def test_clone_repo_exception(self, mock_clone_enhanced, capsys):
+    def test_clone_repo_exception(self, mock_clone_enhanced, capsys) -> None:
         """Test repository cloning with exception."""
         # Mock the enhanced clone function to raise an exception
         mock_clone_enhanced.side_effect = Exception("Network error")
@@ -180,7 +180,7 @@ class TestCheckPrerequisites:
     @patch("run_bitcoin_tests.main.clone_bitcoin_repo")
     @patch("run_bitcoin_tests.main.get_config")
     @patch("run_bitcoin_tests.main.Path")
-    def test_check_prerequisites_success(self, mock_path, mock_get_config, mock_clone, capsys):
+    def test_check_prerequisites_success(self, mock_path, mock_get_config, mock_clone, capsys) -> None:
         """Test successful prerequisites check."""
         mock_config = Mock()
         mock_config.docker.compose_file = "docker-compose.yml"
@@ -243,7 +243,7 @@ class TestBuildDockerImage:
 
     @patch("run_bitcoin_tests.main.get_config")
     @patch("run_bitcoin_tests.main.run_command")
-    def test_build_docker_image_success(self, mock_run_command, mock_get_config, capsys):
+    def test_build_docker_image_success(self, mock_run_command, mock_get_config, capsys) -> None:
         """Test successful Docker image build."""
         mock_config = Mock()
         mock_config.docker.compose_file = "docker-compose.yml"
@@ -264,7 +264,7 @@ class TestBuildDockerImage:
 
     @patch("run_bitcoin_tests.main.get_config")
     @patch("run_bitcoin_tests.main.run_command")
-    def test_build_docker_image_failure(self, mock_run_command, mock_get_config, capsys):
+    def test_build_docker_image_failure(self, mock_run_command, mock_get_config, capsys) -> None:
         """Test Docker image build failure."""
         mock_config = Mock()
         mock_config.docker.compose_file = "docker-compose.yml"
@@ -288,7 +288,7 @@ class TestRunTests:
 
     @patch("run_bitcoin_tests.main.get_config")
     @patch("run_bitcoin_tests.main.run_command")
-    def test_run_tests_success(self, mock_run_command, mock_get_config, capsys):
+    def test_run_tests_success(self, mock_run_command, mock_get_config, capsys) -> None:
         """Test successful test execution."""
         mock_config = Mock()
         mock_config.docker.compose_file = "docker-compose.yml"
@@ -317,7 +317,7 @@ class TestRunTests:
 
     @patch("run_bitcoin_tests.main.get_config")
     @patch("run_bitcoin_tests.main.run_command")
-    def test_run_tests_failure(self, mock_run_command, mock_get_config, capsys):
+    def test_run_tests_failure(self, mock_run_command, mock_get_config, capsys) -> None:
         """Test test execution failure."""
         mock_config = Mock()
         mock_config.docker.compose_file = "docker-compose.yml"
@@ -346,7 +346,7 @@ class TestCleanupContainers:
     """Test cleanup_containers function."""
 
     @patch("run_bitcoin_tests.main.run_command")
-    def test_cleanup_containers(self, mock_run_command, capsys):
+    def test_cleanup_containers(self, mock_run_command, capsys) -> None:
         """Test container cleanup."""
         cleanup_containers()
 
@@ -358,7 +358,7 @@ class TestCleanupContainers:
 class TestParseArguments:
     """Test parse_arguments function."""
 
-    def test_parse_arguments_default(self):
+    def test_parse_arguments_default(self) -> None:
         """Test parsing with default arguments."""
         with patch("sys.argv", ["script.py"]):
             args = parse_arguments()
@@ -367,7 +367,7 @@ class TestParseArguments:
             assert args.repo_url is None
             assert args.branch is None
 
-    def test_parse_arguments_custom(self):
+    def test_parse_arguments_custom(self) -> None:
         """Test parsing with custom arguments."""
         with patch(
             "sys.argv",
@@ -378,7 +378,7 @@ class TestParseArguments:
             assert args.repo_url == "https://github.com/myfork/bitcoin"
             assert args.branch == "feature-branch"
 
-    def test_parse_arguments_long_options(self):
+    def test_parse_arguments_long_options(self) -> None:
         """Test parsing with long options."""
         with patch(
             "sys.argv",

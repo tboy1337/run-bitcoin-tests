@@ -28,13 +28,14 @@ Example Usage:
 
 import re
 import urllib.parse
+from typing import List
 
 
 class ValidationError(Exception):
     """Raised when validation fails."""
 
 
-def validate_git_url(url):
+def validate_git_url(url: str) -> str:
     """
     Validate and normalize a Git repository URL.
 
@@ -89,7 +90,7 @@ def validate_git_url(url):
     return url
 
 
-def validate_branch_name(branch):
+def validate_branch_name(branch: str) -> str:
     """
     Validate a Git branch name for safety and correctness.
 
@@ -150,7 +151,7 @@ def validate_branch_name(branch):
     return branch
 
 
-def validate_file_path(path, allow_absolute=False):
+def validate_file_path(path: str, allow_absolute: bool = False) -> str:
     """
     Validate a file path for safety.
 
@@ -185,7 +186,7 @@ def validate_file_path(path, allow_absolute=False):
     return path
 
 
-def sanitize_command_args(args):
+def sanitize_command_args(args: List[str]) -> List[str]:
     """Sanitize command arguments to prevent injection attacks."""
     if not isinstance(args, list):
         raise ValidationError("Command arguments must be a list")
@@ -207,16 +208,16 @@ def sanitize_command_args(args):
 
 # Import print_colored here to avoid circular imports
 try:
-    from .main import Fore, print_colored
+    from .main import Fore, print_colored  # type: ignore[attr-defined]
 except ImportError:
     # Fallback for when this module is imported directly
     def print_colored(
-        message, color="", bright=False
-    ):  # pylint: disable=unused-argument
+        message: str, color: str = "", bright: bool = False
+    ) -> None:  # pylint: disable=unused-argument
         """Fallback print_colored when colorama is not available."""
         print(message)
 
-    class Fore:  # pylint: disable=too-few-public-methods
+    class Fore:  # type: ignore[no-redef]  # pylint: disable=too-few-public-methods
         """Fallback Fore class when colorama is not available."""
 
         YELLOW = ""

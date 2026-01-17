@@ -28,7 +28,7 @@ from run_bitcoin_tests.config import (
 class TestConfigDataClasses:
     """Test configuration data classes."""
 
-    def test_repository_config_defaults(self):
+    def test_repository_config_defaults(self) -> None:
         """Test RepositoryConfig default values."""
         config = RepositoryConfig()
         assert config.url == "https://github.com/bitcoin/bitcoin"
@@ -36,21 +36,21 @@ class TestConfigDataClasses:
         assert config.clone_timeout == 600
         assert config.shallow_clone is True
 
-    def test_build_config_defaults(self):
+    def test_build_config_defaults(self) -> None:
         """Test BuildConfig default values."""
         config = BuildConfig()
         assert config.type == "RelWithDebInfo"
         assert config.parallel_jobs is None
         assert config.enable_tests is True
 
-    def test_docker_config_defaults(self):
+    def test_docker_config_defaults(self) -> None:
         """Test DockerConfig default values."""
         config = DockerConfig()
         assert config.compose_file == "docker-compose.yml"
         assert config.container_name == "bitcoin-tests"
         assert config.keep_containers is False
 
-    def test_app_config_defaults(self):
+    def test_app_config_defaults(self) -> None:
         """Test AppConfig default values."""
         config = AppConfig()
         assert config.version == "1.0.0"
@@ -63,14 +63,14 @@ class TestConfigDataClasses:
 class TestConfigManager:
     """Test ConfigManager functionality."""
 
-    def test_initialization(self):
+    def test_initialization(self) -> None:
         """Test ConfigManager initialization."""
         manager = ConfigManager()
         assert isinstance(manager.config, AppConfig)
         assert manager._env_cache == {}
         assert manager._loaded_env_files == []
 
-    def test_env_var_parsing(self):
+    def test_env_var_parsing(self) -> None:
         """Test environment variable parsing."""
         manager = ConfigManager()
 
@@ -96,7 +96,7 @@ class TestConfigManager:
         with patch.dict(os.environ, {"TEST_INVALID_INT": "not_a_number"}):
             assert manager._get_env_var("TEST_INVALID_INT", 100, int) == 100
 
-    def test_load_from_env_vars(self):
+    def test_load_from_env_vars(self) -> None:
         """Test loading configuration from environment variables."""
         manager = ConfigManager()
 
@@ -117,7 +117,7 @@ class TestConfigManager:
             assert manager.config.logging.level == "DEBUG"
             assert manager.config.debug is True
 
-    def test_load_from_env_file(self):
+    def test_load_from_env_file(self) -> None:
         """Test loading configuration from .env file."""
         manager = ConfigManager()
 
@@ -149,7 +149,7 @@ BTC_LOG_LEVEL=WARNING
         finally:
             Path(env_file).unlink()
 
-    def test_validate_config(self):
+    def test_validate_config(self) -> None:
         """Test configuration validation."""
         manager = ConfigManager()
 
@@ -182,7 +182,7 @@ BTC_LOG_LEVEL=WARNING
         assert len(errors) > 0
         assert "Invalid build type" in errors[0]
 
-    def test_get_summary(self):
+    def test_get_summary(self) -> None:
         """Test configuration summary generation."""
         manager = ConfigManager()
         summary = manager.get_summary()
@@ -191,7 +191,7 @@ BTC_LOG_LEVEL=WARNING
         assert "Repository:" in summary
         assert "Build Type:" in summary
 
-    def test_save_to_env_file(self):
+    def test_save_to_env_file(self) -> None:
         """Test saving configuration to .env file."""
         manager = ConfigManager()
 
@@ -215,12 +215,12 @@ BTC_LOG_LEVEL=WARNING
 class TestConfigFunctions:
     """Test global configuration functions."""
 
-    def test_get_config(self):
+    def test_get_config(self) -> None:
         """Test getting current configuration."""
         config = get_config()
         assert isinstance(config, AppConfig)
 
-    def test_update_config(self):
+    def test_update_config(self) -> None:
         """Test updating configuration at runtime."""
         original_url = get_config().repository.url
 
@@ -233,7 +233,7 @@ class TestConfigFunctions:
         reset_config()
         assert get_config().repository.url == original_url
 
-    def test_reset_config(self):
+    def test_reset_config(self) -> None:
         """Test resetting configuration to defaults."""
         original_config = AppConfig()
         original_url = original_config.repository.url
@@ -251,7 +251,7 @@ class TestConfigFunctions:
 class TestConfigLoading:
     """Test configuration loading with precedence."""
 
-    def test_load_config_precedence(self):
+    def test_load_config_precedence(self) -> None:
         """Test that configuration loading respects precedence order."""
         # Create mock args with all required attributes
         mock_args = Mock()
@@ -292,7 +292,7 @@ class TestConfigLoading:
             # Env var should be used for branch since CLI didn't specify
             assert config.repository.branch == "env-branch"
 
-    def test_load_config_validation_failure(self):
+    def test_load_config_validation_failure(self) -> None:
         """Test that invalid configuration raises ValueError."""
         from run_bitcoin_tests.config import config_manager
 

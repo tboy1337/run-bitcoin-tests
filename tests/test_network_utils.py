@@ -32,7 +32,7 @@ class TestDiagnoseNetworkConnectivity:
 
     @patch("socket.gethostbyname")
     @patch("subprocess.run")
-    def test_successful_connectivity(self, mock_run, mock_gethostbyname):
+    def test_successful_connectivity(self, mock_run, mock_gethostbyname) -> None:
         """Test successful network connectivity diagnosis."""
         # Mock successful ping
         mock_ping_result = Mock()
@@ -50,7 +50,7 @@ class TestDiagnoseNetworkConnectivity:
 
     @patch("socket.gethostbyname")
     @patch("subprocess.run")
-    def test_failed_connectivity(self, mock_run, mock_gethostbyname):
+    def test_failed_connectivity(self, mock_run, mock_gethostbyname) -> None:
         """Test failed network connectivity diagnosis."""
         # Mock failed ping
         mock_ping_result = Mock()
@@ -71,7 +71,7 @@ class TestRunGitCommandWithRetry:
     """Test git command execution with retry logic."""
 
     @patch("subprocess.run")
-    def test_successful_command(self, mock_run):
+    def test_successful_command(self, mock_run) -> None:
         """Test successful git command execution."""
         mock_result = Mock()
         mock_result.returncode = 0
@@ -85,7 +85,7 @@ class TestRunGitCommandWithRetry:
         mock_run.assert_called_once()
 
     @patch("subprocess.run")
-    def test_network_error_with_retry(self, mock_run):
+    def test_network_error_with_retry(self, mock_run) -> None:
         """Test network error that triggers retry."""
         # First call fails with network error
         mock_result_fail = Mock()
@@ -112,7 +112,7 @@ class TestRunGitCommandWithRetry:
         assert mock_run.call_count == 2
 
     @patch("subprocess.run")
-    def test_max_retries_exceeded(self, mock_run):
+    def test_max_retries_exceeded(self, mock_run) -> None:
         """Test when max retries are exceeded."""
         mock_result = Mock()
         mock_result.returncode = 128
@@ -127,7 +127,7 @@ class TestRunGitCommandWithRetry:
         assert mock_run.call_count == 2  # Should retry once
 
     @patch("subprocess.run")
-    def test_ssl_error(self, mock_run):
+    def test_ssl_error(self, mock_run) -> None:
         """Test SSL certificate error handling."""
         mock_result = Mock()
         mock_result.returncode = 128
@@ -138,7 +138,7 @@ class TestRunGitCommandWithRetry:
             run_git_command_with_retry(["git", "clone", "repo"], "Clone repository", max_retries=1)
 
     @patch("subprocess.run")
-    def test_authentication_error(self, mock_run):
+    def test_authentication_error(self, mock_run) -> None:
         """Test authentication error handling."""
         mock_result = Mock()
         mock_result.returncode = 128
@@ -149,7 +149,7 @@ class TestRunGitCommandWithRetry:
             run_git_command_with_retry(["git", "clone", "repo"], "Clone repository", max_retries=1)
 
     @patch("subprocess.run")
-    def test_repository_error(self, mock_run):
+    def test_repository_error(self, mock_run) -> None:
         """Test repository access error handling."""
         mock_result = Mock()
         mock_result.returncode = 128
@@ -160,7 +160,7 @@ class TestRunGitCommandWithRetry:
             run_git_command_with_retry(["git", "clone", "repo"], "Clone repository", max_retries=1)
 
     @patch("subprocess.run")
-    def test_disk_space_error(self, mock_run):
+    def test_disk_space_error(self, mock_run) -> None:
         """Test disk space error handling."""
         mock_result = Mock()
         mock_result.returncode = 128
@@ -171,7 +171,7 @@ class TestRunGitCommandWithRetry:
             run_git_command_with_retry(["git", "clone", "repo"], "Clone repository", max_retries=1)
 
     @patch("subprocess.run")
-    def test_timeout_error(self, mock_run):
+    def test_timeout_error(self, mock_run) -> None:
         """Test timeout error handling."""
         mock_run.side_effect = subprocess.TimeoutExpired(["git", "clone"], 300)
 
@@ -185,7 +185,7 @@ class TestCloneBitcoinRepoEnhanced:
     """Test enhanced Bitcoin repository cloning."""
 
     @patch("run_bitcoin_tests.network_utils.clone_bitcoin_repo_enhanced")
-    def test_clone_when_directory_exists(self, mock_clone):
+    def test_clone_when_directory_exists(self, mock_clone) -> None:
         """Test cloning when directory already exists."""
         with patch("pathlib.Path.exists", return_value=True):
             clone_bitcoin_repo_enhanced("https://github.com/bitcoin/bitcoin", "master")
@@ -197,7 +197,7 @@ class TestCloneBitcoinRepoEnhanced:
     @patch(
         "run_bitcoin_tests.network_utils.print_colored"
     )  # Mock print_colored to avoid encoding issues
-    def test_successful_clone(self, mock_print_colored, mock_diagnose, mock_run_git):
+    def test_successful_clone(self, mock_print_colored, mock_diagnose, mock_run_git) -> None:
         """Test successful repository cloning."""
         mock_diagnose.return_value = ["Network connectivity working"]  # Avoid Unicode chars
         mock_result = Mock()
@@ -215,7 +215,7 @@ class TestCloneBitcoinRepoEnhanced:
 
     @patch("run_bitcoin_tests.network_utils.run_git_command_with_retry")
     @patch("run_bitcoin_tests.network_utils.diagnose_network_connectivity")
-    def test_clone_with_connection_error(self, mock_diagnose, mock_run_git):
+    def test_clone_with_connection_error(self, mock_diagnose, mock_run_git) -> None:
         """Test clone with connection error."""
         mock_diagnose.return_value = ["[FAIL] Cannot reach host"]
         mock_run_git.side_effect = NetworkConnectionError("Network connection failed")
@@ -226,7 +226,7 @@ class TestCloneBitcoinRepoEnhanced:
 
     @patch("run_bitcoin_tests.network_utils.run_git_command_with_retry")
     @patch("run_bitcoin_tests.network_utils.diagnose_network_connectivity")
-    def test_clone_with_ssl_error(self, mock_diagnose, mock_run_git):
+    def test_clone_with_ssl_error(self, mock_diagnose, mock_run_git) -> None:
         """Test clone with SSL error."""
         mock_diagnose.return_value = ["[OK] Network connectivity working"]
         mock_run_git.side_effect = SSLError("SSL certificate verification failed")
@@ -240,7 +240,7 @@ class TestGitCache:
     """Test GitCache functionality."""
 
     @patch("run_bitcoin_tests.network_utils.GitCache._instance", None)
-    def test_get_instance_creates_singleton(self):
+    def test_get_instance_creates_singleton(self) -> None:
         """Test that get_instance creates a singleton."""
         # Reset the singleton
         GitCache._instance = None
@@ -252,7 +252,7 @@ class TestGitCache:
         assert isinstance(instance1, GitCache)
 
     @patch("run_bitcoin_tests.network_utils.GitCache._instance", None)
-    def test_get_instance_with_custom_params(self):
+    def test_get_instance_with_custom_params(self) -> None:
         """Test get_instance with custom parameters."""
         GitCache._instance = None
 
@@ -264,7 +264,7 @@ class TestGitCache:
         assert instance.cache_dir == Path("/tmp/custom")
         assert instance.max_cache_size_gb == 5.0
 
-    def test_git_cache_initialization(self):
+    def test_git_cache_initialization(self) -> None:
         """Test GitCache initialization."""
         with patch("pathlib.Path.mkdir"):
             cache = GitCache(cache_dir="/tmp/test", max_cache_size_gb=2.0)
@@ -280,7 +280,7 @@ class TestGitCache:
     @patch("builtins.open")
     @patch("json.load")
     @patch("pathlib.Path.mkdir")  # Prevent directory creation during test
-    def test_load_metadata_success(self, mock_mkdir, mock_json_load, mock_open, mock_exists):
+    def test_load_metadata_success(self, mock_mkdir, mock_json_load, mock_open, mock_exists) -> None:
         """Test loading metadata successfully."""
         mock_exists.return_value = True
         mock_json_load.return_value = {"test": "data"}
@@ -296,7 +296,7 @@ class TestGitCache:
         mock_open.assert_called_once()
 
     @patch("pathlib.Path.exists")
-    def test_load_metadata_file_not_exists(self, mock_exists):
+    def test_load_metadata_file_not_exists(self, mock_exists) -> None:
         """Test loading metadata when file doesn't exist."""
         mock_exists.return_value = False
 
@@ -328,14 +328,14 @@ class TestGitCache:
 
     @patch("logging.warning")
     @patch("pathlib.Path.mkdir")  # Prevent directory creation during test
-    def test_save_metadata(self, mock_mkdir, mock_logging_warning):
+    def test_save_metadata(self, mock_mkdir, mock_logging_warning) -> None:
         """Test saving metadata."""
         with patch("builtins.open") as mock_open, patch("json.dump") as mock_json_dump:
 
             # Create cache without calling constructor's _load_metadata
             cache = object.__new__(GitCache)
             cache.cache_metadata_file = Mock()
-            cache._metadata = {"test": "data"}
+            cache._metadata = {"test": {"nested": "data"}}
             cache._metadata_lock = Mock()
             cache._metadata_lock.__enter__ = Mock(return_value=None)
             cache._metadata_lock.__exit__ = Mock(return_value=None)
@@ -345,18 +345,18 @@ class TestGitCache:
             mock_open.assert_called_once()
             # Check that json.dump was called with the mock file object
             call_args = mock_json_dump.call_args
-            assert call_args[0][0] == {"test": "data"}
+            assert call_args[0][0] == {"test": {"nested": "data"}}
             assert call_args[1]["indent"] == 2
 
     @patch("logging.warning")
     @patch("builtins.open", side_effect=IOError("Write error"))
     @patch("pathlib.Path.mkdir")  # Prevent directory creation during test
-    def test_save_metadata_error(self, mock_mkdir, mock_open, mock_logging_warning):
+    def test_save_metadata_error(self, mock_mkdir, mock_open, mock_logging_warning) -> None:
         """Test saving metadata with error."""
         # Create cache without calling constructor's _load_metadata
         cache = object.__new__(GitCache)
         cache.cache_metadata_file = Mock()
-        cache._metadata = {"test": "data"}
+        cache._metadata = {"test": {"nested": "data"}}
         cache._metadata_lock = Mock()
         cache._metadata_lock.__enter__ = Mock(return_value=None)
         cache._metadata_lock.__exit__ = Mock(return_value=None)
@@ -371,7 +371,7 @@ class TestGetGitCache:
     """Test get_git_cache function."""
 
     @patch("run_bitcoin_tests.network_utils.GitCache")
-    def test_get_git_cache_default_params(self, mock_git_cache_class):
+    def test_get_git_cache_default_params(self, mock_git_cache_class) -> None:
         """Test get_git_cache with default parameters."""
         mock_instance = Mock()
         mock_git_cache_class.return_value = mock_instance
@@ -387,7 +387,7 @@ class TestGetGitCache:
         assert result == mock_instance
 
     @patch("run_bitcoin_tests.network_utils.GitCache")
-    def test_get_git_cache_custom_params(self, mock_git_cache_class):
+    def test_get_git_cache_custom_params(self, mock_git_cache_class) -> None:
         """Test get_git_cache with custom parameters."""
         mock_instance = Mock()
         mock_git_cache_class.return_value = mock_instance
@@ -406,7 +406,7 @@ class TestGetGitCache:
 class TestErrorDetectionFunctions:
     """Test error detection helper functions."""
 
-    def test_is_network_error_true(self):
+    def test_is_network_error_true(self) -> None:
         """Test _is_network_error returns True for network errors."""
         network_errors = [
             "Network is unreachable",
@@ -425,7 +425,7 @@ class TestErrorDetectionFunctions:
         for error in network_errors:
             assert _is_network_error(error), f"Should detect '{error}' as network error"
 
-    def test_is_network_error_false(self):
+    def test_is_network_error_false(self) -> None:
         """Test _is_network_error returns False for non-network errors."""
         non_network_errors = [
             "Repository not found",
@@ -437,7 +437,7 @@ class TestErrorDetectionFunctions:
         for error in non_network_errors:
             assert not _is_network_error(error), f"Should not detect '{error}' as network error"
 
-    def test_is_ssl_error_true(self):
+    def test_is_ssl_error_true(self) -> None:
         """Test _is_ssl_error returns True for SSL errors."""
         ssl_errors = [
             "SSL certificate verification failed",
@@ -450,14 +450,14 @@ class TestErrorDetectionFunctions:
         for error in ssl_errors:
             assert _is_ssl_error(error), f"Should detect '{error}' as SSL error"
 
-    def test_is_ssl_error_false(self):
+    def test_is_ssl_error_false(self) -> None:
         """Test _is_ssl_error returns False for non-SSL errors."""
         non_ssl_errors = ["Repository not found", "Connection refused", "Disk space insufficient"]
 
         for error in non_ssl_errors:
             assert not _is_ssl_error(error), f"Should not detect '{error}' as SSL error"
 
-    def test_is_authentication_error_true(self):
+    def test_is_authentication_error_true(self) -> None:
         """Test _is_authentication_error returns True for auth errors."""
         auth_errors = [
             "Authentication failed",
@@ -471,7 +471,7 @@ class TestErrorDetectionFunctions:
         for error in auth_errors:
             assert _is_authentication_error(error), f"Should detect '{error}' as auth error"
 
-    def test_is_authentication_error_false(self):
+    def test_is_authentication_error_false(self) -> None:
         """Test _is_authentication_error returns False for non-auth errors."""
         non_auth_errors = [
             "Network is unreachable",
@@ -483,7 +483,7 @@ class TestErrorDetectionFunctions:
         for error in non_auth_errors:
             assert not _is_authentication_error(error), f"Should not detect '{error}' as auth error"
 
-    def test_is_repository_error_true(self):
+    def test_is_repository_error_true(self) -> None:
         """Test _is_repository_error returns True for repository errors."""
         repo_errors = [
             "Remote repository not found",
@@ -498,7 +498,7 @@ class TestErrorDetectionFunctions:
         for error in repo_errors:
             assert _is_repository_error(error), f"Should detect '{error}' as repository error"
 
-    def test_is_repository_error_false(self):
+    def test_is_repository_error_false(self) -> None:
         """Test _is_repository_error returns False for non-repository errors."""
         non_repo_errors = [
             "Network is unreachable",
@@ -511,7 +511,7 @@ class TestErrorDetectionFunctions:
                 error
             ), f"Should not detect '{error}' as repository error"
 
-    def test_is_disk_space_error_true(self):
+    def test_is_disk_space_error_true(self) -> None:
         """Test _is_disk_space_error returns True for disk space errors."""
         disk_errors = [
             "No space left on device",
@@ -524,7 +524,7 @@ class TestErrorDetectionFunctions:
         for error in disk_errors:
             assert _is_disk_space_error(error), f"Should detect '{error}' as disk space error"
 
-    def test_is_disk_space_error_false(self):
+    def test_is_disk_space_error_false(self) -> None:
         """Test _is_disk_space_error returns False for non-disk errors."""
         non_disk_errors = [
             "Network is unreachable",

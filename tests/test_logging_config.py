@@ -13,7 +13,7 @@ from run_bitcoin_tests.logging_config import get_logger, setup_logging
 class TestSetupLogging:
     """Test logging setup functionality."""
 
-    def test_setup_logging_default(self):
+    def test_setup_logging_default(self) -> None:
         """Test setup_logging with default parameters."""
         logger = setup_logging()
 
@@ -21,7 +21,7 @@ class TestSetupLogging:
         assert logger.level == logging.INFO
         assert len(logger.handlers) >= 1  # At least console handler
 
-    def test_setup_logging_verbose(self):
+    def test_setup_logging_verbose(self) -> None:
         """Test setup_logging with verbose=True."""
         logger = setup_logging(verbose=True)
 
@@ -34,26 +34,26 @@ class TestSetupLogging:
         formatter = console_handler.formatter
         assert "funcName" in formatter._fmt
 
-    def test_setup_logging_quiet(self):
+    def test_setup_logging_quiet(self) -> None:
         """Test setup_logging with quiet=True."""
         logger = setup_logging(quiet=True)
 
         assert logger.level == logging.ERROR
 
-    def test_setup_logging_custom_level(self):
+    def test_setup_logging_custom_level(self) -> None:
         """Test setup_logging with custom log level."""
         logger = setup_logging(level="WARNING")
 
         assert logger.level == logging.WARNING
 
-    def test_setup_logging_invalid_level(self):
+    def test_setup_logging_invalid_level(self) -> None:
         """Test setup_logging with invalid log level defaults to INFO."""
         logger = setup_logging(level="INVALID")
 
         assert logger.level == logging.INFO
 
     @patch("pathlib.Path.mkdir")
-    def test_setup_logging_with_file(self, mock_mkdir):
+    def test_setup_logging_with_file(self, mock_mkdir) -> None:
         """Test setup_logging with log file."""
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir) / "test.log"
@@ -78,7 +78,7 @@ class TestSetupLogging:
             logger.handlers.clear()
 
     @patch("pathlib.Path.mkdir", side_effect=Exception("Permission denied"))
-    def test_setup_logging_file_creation_error(self, mock_mkdir):
+    def test_setup_logging_file_creation_error(self, mock_mkdir) -> None:
         """Test setup_logging handles file creation errors gracefully."""
         # This is tricky to test directly, so we'll test that the function
         # doesn't crash and continues with console logging
@@ -87,7 +87,7 @@ class TestSetupLogging:
         # Should still have at least console handler
         assert len(logger.handlers) >= 1
 
-    def test_setup_logging_removes_existing_handlers(self):
+    def test_setup_logging_removes_existing_handlers(self) -> None:
         """Test that setup_logging removes existing handlers."""
         logger = logging.getLogger("bitcoin_tests")
 
@@ -101,7 +101,7 @@ class TestSetupLogging:
         # Dummy handler should be removed
         assert dummy_handler not in logger.handlers
 
-    def test_setup_logging_color_filter(self):
+    def test_setup_logging_color_filter(self) -> None:
         """Test that color filter is added to console handler."""
         logger = setup_logging()
 
@@ -114,7 +114,7 @@ class TestSetupLogging:
         color_filter = next((f for f in console_handler.filters if hasattr(f, "filter")), None)
         assert color_filter is not None
 
-    def test_color_filter_removes_ansi_codes(self):
+    def test_color_filter_removes_ansi_codes(self) -> None:
         """Test that ColorFilter removes ANSI escape codes."""
         from run_bitcoin_tests.logging_config import setup_logging
 
@@ -138,19 +138,19 @@ class TestSetupLogging:
 class TestGetLogger:
     """Test get_logger function."""
 
-    def test_get_logger_default(self):
+    def test_get_logger_default(self) -> None:
         """Test get_logger with default parameters."""
         logger = get_logger()
 
         assert logger.name == "bitcoin_tests.bitcoin_tests"
 
-    def test_get_logger_custom_name(self):
+    def test_get_logger_custom_name(self) -> None:
         """Test get_logger with custom name."""
         logger = get_logger("custom")
 
         assert logger.name == "bitcoin_tests.custom"
 
-    def test_get_logger_returns_same_instance(self):
+    def test_get_logger_returns_same_instance(self) -> None:
         """Test get_logger returns same instance for same name."""
         logger1 = get_logger("test")
         logger2 = get_logger("test")
@@ -161,7 +161,7 @@ class TestGetLogger:
 class TestGlobalLogger:
     """Test global logger instance."""
 
-    def test_global_logger_exists(self):
+    def test_global_logger_exists(self) -> None:
         """Test that global logger is properly initialized."""
         from run_bitcoin_tests.logging_config import logger
 

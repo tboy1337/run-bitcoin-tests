@@ -6,7 +6,7 @@ import run_bitcoin_tests.__main__
 class TestMainEntry:
     """Test the main entry point (__main__.py)."""
 
-    def test_main_module_import(self):
+    def test_main_module_import(self) -> None:
         """Test that the __main__ module can be imported."""
         # Simply importing the __main__ module should execute the import statement
         # This should cover line 3 in __main__.py

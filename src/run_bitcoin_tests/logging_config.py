@@ -59,7 +59,7 @@ def setup_logging(
 
     # Filter out colorama escape sequences from log output
     class ColorFilter(logging.Filter):
-        def filter(self, record):
+        def filter(self, record: logging.LogRecord) -> bool:
             # Remove ANSI escape sequences from log messages
             if hasattr(record, "msg") and isinstance(record.msg, str):
                 record.msg = re.sub(r"\x1b\[[0-9;]*m", "", record.msg)

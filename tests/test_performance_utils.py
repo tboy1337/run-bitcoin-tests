@@ -24,7 +24,7 @@ from run_bitcoin_tests.performance_utils import (
 class TestPerformanceMonitor:
     """Test cases for PerformanceMonitor class."""
 
-    def test_initialization(self):
+    def test_initialization(self) -> None:
         """Test PerformanceMonitor initialization."""
         monitor = PerformanceMonitor(interval=0.1)
         assert monitor.interval == 0.1
@@ -32,7 +32,7 @@ class TestPerformanceMonitor:
         assert monitor._thread is None
         assert monitor._metrics == []
 
-    def test_start_stop_monitoring(self):
+    def test_start_stop_monitoring(self) -> None:
         """Test starting and stopping performance monitoring."""
         monitor = PerformanceMonitor(interval=0.01)
 
@@ -50,7 +50,7 @@ class TestPerformanceMonitor:
         assert not monitor._monitoring
         assert len(metrics) > 0
 
-    def test_start_monitoring_already_started(self):
+    def test_start_monitoring_already_started(self) -> None:
         """Test starting monitoring when already started."""
         monitor = PerformanceMonitor(interval=0.01)
 
@@ -70,7 +70,7 @@ class TestPerformanceMonitor:
         side_effect=Exception("Collection error"),
     )
     @patch("run_bitcoin_tests.performance_utils.logger")
-    def test_monitoring_collect_metrics_exception(self, mock_logger, mock_collect):
+    def test_monitoring_collect_metrics_exception(self, mock_logger, mock_collect) -> None:
         """Test that monitoring loop handles _collect_metrics exceptions."""
         monitor = PerformanceMonitor(interval=0.01)
 
@@ -86,7 +86,7 @@ class TestPerformanceMonitor:
         # Should have logged the warning
         mock_logger.warning.assert_called()
 
-    def test_stop_monitoring_not_started(self):
+    def test_stop_monitoring_not_started(self) -> None:
         """Test stopping monitoring when not started."""
         monitor = PerformanceMonitor()
 
@@ -103,7 +103,7 @@ class TestPerformanceMonitor:
             assert isinstance(metric["timestamp"], float)
             assert isinstance(metric["cpu_percent"], (int, float))
 
-    def test_monitoring_context(self):
+    def test_monitoring_context(self) -> None:
         """Test that monitoring stops when interrupted."""
         monitor = PerformanceMonitor(interval=0.01)
         monitor.start_monitoring()
@@ -119,7 +119,7 @@ class TestPerformanceMonitor:
     @patch("run_bitcoin_tests.performance_utils.psutil.virtual_memory")
     @patch("run_bitcoin_tests.performance_utils.psutil.disk_usage")
     @patch("run_bitcoin_tests.performance_utils.psutil.net_io_counters")
-    def test_collect_metrics(self, mock_net, mock_disk, mock_memory, mock_cpu):
+    def test_collect_metrics(self, mock_net, mock_disk, mock_memory, mock_cpu) -> None:
         """Test metrics collection with mocked system calls."""
         # Setup mocks
         mock_cpu.return_value = 45.5
@@ -140,7 +140,7 @@ class TestPerformanceMonitor:
         assert metrics["network_bytes_sent"] == 1024 * 1024
         assert metrics["network_bytes_recv"] == 2 * 1024 * 1024
 
-    def test_error_handling_in_metrics_collection(self):
+    def test_error_handling_in_metrics_collection(self) -> None:
         """Test that metrics collection handles errors gracefully."""
         monitor = PerformanceMonitor()
 
@@ -159,7 +159,7 @@ class TestResourceOptimizer:
 
     @patch("run_bitcoin_tests.performance_utils.multiprocessing.cpu_count", return_value=8)
     @patch("run_bitcoin_tests.performance_utils.psutil.virtual_memory")
-    def test_get_optimal_parallel_jobs(self, mock_memory, mock_cpu_count):
+    def test_get_optimal_parallel_jobs(self, mock_memory, mock_cpu_count) -> None:
         """Test optimal parallel job calculation."""
         mock_memory.return_value.total = 16 * 1024**3  # 16GB
 
@@ -179,7 +179,7 @@ class TestResourceOptimizer:
         assert optimal == 4
 
     @patch("run_bitcoin_tests.performance_utils.multiprocessing.cpu_count", return_value=1)
-    def test_minimum_jobs(self, mock_cpu_count):
+    def test_minimum_jobs(self, mock_cpu_count) -> None:
         """Test that at least 1 job is always returned."""
         optimal = ResourceOptimizer.get_optimal_parallel_jobs()
         assert optimal >= 1
@@ -189,14 +189,14 @@ class TestResourceOptimizer:
         side_effect=Exception("Memory info error"),
     )
     @patch("run_bitcoin_tests.performance_utils.multiprocessing.cpu_count", return_value=4)
-    def test_get_optimal_parallel_jobs_exception(self, mock_cpu_count, mock_memory):
+    def test_get_optimal_parallel_jobs_exception(self, mock_cpu_count, mock_memory) -> None:
         """Test get_optimal_parallel_jobs handles exceptions."""
         optimal = ResourceOptimizer.get_optimal_parallel_jobs()
         # Should fallback to conservative default: max(1, 4 // 2) = 2
         assert optimal == 2
 
     @patch("run_bitcoin_tests.performance_utils.platform.system", return_value="Linux")
-    def test_optimize_process_priority_linux(self, mock_platform):
+    def test_optimize_process_priority_linux(self, mock_platform) -> None:
         """Test process priority optimization on Linux."""
         import sys
 
@@ -207,13 +207,13 @@ class TestResourceOptimizer:
             mock_nice.assert_called_once_with(-5)
 
     @patch("run_bitcoin_tests.performance_utils.platform.system", return_value="Windows")
-    def test_optimize_process_priority_windows(self, mock_platform):
+    def test_optimize_process_priority_windows(self, mock_platform) -> None:
         """Test process priority optimization on Windows (should do nothing)."""
         ResourceOptimizer.optimize_process_priority()
         # Should not attempt to change priority on Windows
 
     @patch("run_bitcoin_tests.performance_utils.platform.system", return_value="Linux")
-    def test_optimize_process_priority_exception(self, mock_platform):
+    def test_optimize_process_priority_exception(self, mock_platform) -> None:
         """Test optimize_process_priority handles exceptions gracefully."""
         import sys
 
@@ -224,7 +224,7 @@ class TestResourceOptimizer:
             ResourceOptimizer.optimize_process_priority()
 
     @patch("run_bitcoin_tests.performance_utils.gc.collect")
-    def test_cleanup_memory(self, mock_gc):
+    def test_cleanup_memory(self, mock_gc) -> None:
         """Test memory cleanup."""
         ResourceOptimizer.cleanup_memory()
         mock_gc.assert_called_once()
@@ -265,7 +265,7 @@ class TestResourceOptimizer:
         assert info["platform"] == "Linux-5.4.0"
         assert info["python_version"] == "3.9.0"
 
-    def test_get_system_info_error_handling(self):
+    def test_get_system_info_error_handling(self) -> None:
         """Test system info collection handles errors."""
         with patch(
             "run_bitcoin_tests.performance_utils.psutil.virtual_memory",
@@ -280,13 +280,13 @@ class TestResourceOptimizer:
 class TestParallelExecutor:
     """Test cases for ParallelExecutor class."""
 
-    def test_initialization(self):
+    def test_initialization(self) -> None:
         """Test ParallelExecutor initialization."""
         executor = ParallelExecutor(max_workers=4)
         assert executor.max_workers == 4
         assert executor._executor is None
 
-    def test_context_manager(self):
+    def test_context_manager(self) -> None:
         """Test ParallelExecutor as context manager."""
         executor = ParallelExecutor(max_workers=2)
         with executor:
@@ -296,7 +296,7 @@ class TestParallelExecutor:
         # Should be cleaned up after context
         assert executor._executor is None
 
-    def test_execute_parallel(self):
+    def test_execute_parallel(self) -> None:
         """Test parallel execution of tasks."""
 
         def add_numbers(x, y):
@@ -310,7 +310,7 @@ class TestParallelExecutor:
 
         assert results == [3, 7, 11]
 
-    def test_execute_parallel_with_errors(self):
+    def test_execute_parallel_with_errors(self) -> None:
         """Test parallel execution handles errors gracefully."""
 
         def success_task():
@@ -328,7 +328,7 @@ class TestParallelExecutor:
         assert results[1] is None  # Error case
         assert results[2] == "success"
 
-    def test_map_parallel(self):
+    def test_map_parallel(self) -> None:
         """Test parallel map functionality."""
 
         def square(x):
@@ -347,7 +347,7 @@ class TestParallelExecutor:
         assert 16 in results
         assert 25 in results
 
-    def test_error_when_not_in_context(self):
+    def test_error_when_not_in_context(self) -> None:
         """Test that operations fail when not in context manager."""
         executor = ParallelExecutor()
 
@@ -361,7 +361,7 @@ class TestParallelExecutor:
 class TestGlobalFunctions:
     """Test global functions in performance_utils."""
 
-    def test_get_performance_monitor_singleton(self):
+    def test_get_performance_monitor_singleton(self) -> None:
         """Test that get_performance_monitor returns singleton instances."""
         # Reset the singleton for this test
         import run_bitcoin_tests.performance_utils as pu
@@ -378,7 +378,7 @@ class TestGlobalFunctions:
     @patch("run_bitcoin_tests.performance_utils.ResourceOptimizer.optimize_process_priority")
     @patch("run_bitcoin_tests.performance_utils.ResourceOptimizer.cleanup_memory")
     @patch("run_bitcoin_tests.performance_utils.ResourceOptimizer.get_system_info")
-    def test_optimize_system_resources(self, mock_get_info, mock_cleanup, mock_optimize):
+    def test_optimize_system_resources(self, mock_get_info, mock_cleanup, mock_optimize) -> None:
         """Test system resource optimization."""
         mock_get_info.return_value = {"cpu_count": 4, "memory_total_gb": 8.0}
 
@@ -407,7 +407,7 @@ class TestGlobalFunctions:
         # Should log the warning
         mock_logger.warning.assert_called_once()
 
-    def test_with_performance_monitoring_decorator(self):
+    def test_with_performance_monitoring_decorator(self) -> None:
         """Test the performance monitoring decorator."""
 
         @with_performance_monitoring
@@ -426,7 +426,7 @@ class TestGlobalFunctions:
 class TestIntegration:
     """Integration tests for performance utilities."""
 
-    def test_full_performance_workflow(self):
+    def test_full_performance_workflow(self) -> None:
         """Test a complete performance monitoring workflow."""
         # Start monitoring
         monitor = get_performance_monitor(interval=0.01)
@@ -442,7 +442,7 @@ class TestIntegration:
         assert all("cpu_percent" in m for m in metrics)
         assert all("memory_percent" in m for m in metrics)
 
-    def test_resource_optimization_workflow(self):
+    def test_resource_optimization_workflow(self) -> None:
         """Test resource optimization workflow."""
         # This is mainly a smoke test since we can't easily test
         # actual system resource changes
@@ -455,7 +455,7 @@ class TestIntegration:
         "run_bitcoin_tests.performance_utils.ResourceOptimizer.get_optimal_parallel_jobs",
         return_value=2,
     )
-    def test_parallel_processing_workflow(self, mock_optimal):
+    def test_parallel_processing_workflow(self, mock_optimal) -> None:
         """Test parallel processing workflow."""
 
         def process_item(item):

@@ -60,12 +60,14 @@ from .thread_utils import (
 
 try:
     import colorama
-    from colorama import Fore, Style
+    from colorama import Fore as ColoramaFore, Style as ColoramaStyle
 
     colorama.init(autoreset=True)
+    Fore = ColoramaFore
+    Style = ColoramaStyle
 except ImportError:  # pragma: no cover
     # Fallback if colorama is not available
-    class Fore:  # pragma: no cover
+    class Fore:  # type: ignore[no-redef]  # pragma: no cover
         CYAN = ""  # pragma: no cover
         GREEN = ""  # pragma: no cover
         RED = ""  # pragma: no cover
@@ -73,12 +75,12 @@ except ImportError:  # pragma: no cover
         WHITE = ""  # pragma: no cover
         RESET = ""  # pragma: no cover
 
-    class Style:  # pragma: no cover
+    class Style:  # type: ignore[no-redef]  # pragma: no cover
         BRIGHT = ""  # pragma: no cover
         RESET_ALL = ""  # pragma: no cover
 
 
-def print_colored(message: str, color: str = Fore.WHITE, bright: bool = False) -> None:
+def print_colored(message: str, color: str = "", bright: bool = False) -> None:
     """
     Print a colored message to stdout.
 
@@ -87,6 +89,8 @@ def print_colored(message: str, color: str = Fore.WHITE, bright: bool = False) -
         color: ANSI color code (e.g., Fore.RED, Fore.GREEN)
         bright: Whether to use bright/bold text
     """
+    if not color:
+        color = Fore.WHITE
     prefix = Style.BRIGHT if bright else ""
     print(f"{prefix}{color}{message}{Style.RESET_ALL}")
 

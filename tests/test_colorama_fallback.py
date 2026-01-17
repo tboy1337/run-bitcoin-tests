@@ -7,7 +7,7 @@ from unittest.mock import patch
 import pytest
 
 
-def test_colorama_fallback_classes_coverage():
+def test_colorama_fallback_classes_coverage() -> None:
     """Test that fallback classes work when colorama is not available."""
     # Run a separate Python process without colorama to test the fallback
     test_code = """

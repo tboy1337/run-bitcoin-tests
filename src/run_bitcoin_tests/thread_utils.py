@@ -40,11 +40,14 @@ import tempfile
 import threading
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Callable, Dict, Generator, IO, List, Optional, Set, TypeVar
 
 from .logging_config import get_logger
 
 logger = get_logger(__name__)
+
+# Type variable for resource tracking
+T = TypeVar('T')
 
 # Global locks for shared resources
 _docker_lock = threading.RLock()
@@ -88,14 +91,14 @@ def initialize_thread_safety() -> None:
     logger.debug("Thread safety mechanisms initialized")
 
 
-def _signal_handler(signum, frame):  # pylint: disable=unused-argument
+def _signal_handler(signum: int, frame: object) -> None:  # pylint: disable=unused-argument
     """Handle termination signals for clean shutdown."""
     logger.info("Received signal %s, initiating clean shutdown", signum)
     emergency_cleanup()
     os._exit(1)
 
 
-def _emergency_cleanup():
+def _emergency_cleanup() -> None:
     """Emergency cleanup function called at exit."""
     try:
         emergency_cleanup()
@@ -103,7 +106,7 @@ def _emergency_cleanup():
         pass  # Silently ignore errors during shutdown
 
 
-def emergency_cleanup():
+def emergency_cleanup() -> None:
     """Perform emergency cleanup of all resources."""
     # No need for global statement since we're not assigning to these variables
     with _docker_lock:
@@ -134,7 +137,7 @@ def emergency_cleanup():
     _cleanup_handlers.clear()
 
 
-def _force_remove_container(container_id: str):
+def _force_remove_container(container_id: str) -> None:
     """Force remove a Docker container."""
     try:
         import subprocess  # pylint: disable=import-outside-toplevel
@@ -154,7 +157,7 @@ def _force_remove_container(container_id: str):
         logger.error("Error removing container %s: %s", container_id, exc)
 
 
-def _force_remove_temp_dir(temp_dir: Path):
+def _force_remove_temp_dir(temp_dir: Path) -> None:
     """Force remove a temporary directory."""
     try:
         import shutil  # pylint: disable=import-outside-toplevel
@@ -166,7 +169,7 @@ def _force_remove_temp_dir(temp_dir: Path):
 
 
 @contextmanager
-def docker_container_lock(container_name: Optional[str] = None):
+def docker_container_lock(container_name: Optional[str] = None) -> Generator[None, None, None]:
     """
     Context manager for thread-safe Docker container operations.
 
@@ -202,7 +205,7 @@ def docker_container_lock(container_name: Optional[str] = None):
 
 
 @contextmanager
-def file_system_lock(operation: str = "file_operation"):
+def file_system_lock(operation: str = "file_operation") -> Generator[None, None, None]:
     """
     Context manager for file system operations.
 
@@ -222,7 +225,7 @@ def file_system_lock(operation: str = "file_operation"):
 
 
 @contextmanager
-def atomic_directory_operation(directory: Path, operation: str = "directory_op"):
+def atomic_directory_operation(directory: Path, operation: str = "directory_op") -> Generator[Path, None, None]:
     """
     Context manager for atomic directory operations with thread safety.
 
@@ -271,7 +274,7 @@ def atomic_directory_operation(directory: Path, operation: str = "directory_op")
 
 
 @contextmanager
-def thread_safe_temp_dir(prefix: str = "bitcoin_tests_", suffix: str = ""):
+def thread_safe_temp_dir(prefix: str = "bitcoin_tests_", suffix: str = "") -> Generator[Path, None, None]:
     """
     Create a thread-safe temporary directory with automatic cleanup.
 
@@ -328,7 +331,7 @@ def thread_safe_temp_dir(prefix: str = "bitcoin_tests_", suffix: str = ""):
 
 
 @contextmanager
-def exclusive_file_operation(file_path: Path, mode: str = "r", operation: str = "file_access"):
+def exclusive_file_operation(file_path: Path, mode: str = "r", operation: str = "file_access") -> Generator[IO[str], None, None]:
     """
     Context manager for exclusive file operations.
 
@@ -353,7 +356,7 @@ def exclusive_file_operation(file_path: Path, mode: str = "r", operation: str = 
 _cleanup_handler_lock = threading.Lock()
 
 
-def register_cleanup_handler(handler: Callable[[], None]):
+def register_cleanup_handler(handler: Callable[[], None]) -> None:
     """
     Register a cleanup handler to be called on exit.
 
@@ -365,7 +368,7 @@ def register_cleanup_handler(handler: Callable[[], None]):
         logger.debug("Registered cleanup handler")
 
 
-def unregister_cleanup_handler(handler: Callable[[], None]):
+def unregister_cleanup_handler(handler: Callable[[], None]) -> None:
     """
     Unregister a cleanup handler.
 
@@ -404,7 +407,7 @@ class ThreadSafeCounter:
         with self._lock:
             return self._value
 
-    def reset(self):
+    def reset(self) -> None:
         """Reset counter to zero."""
         with self._lock:
             self._value = 0
@@ -431,10 +434,10 @@ class ResourceTracker:
 
     def __init__(self) -> None:
         """Initialize the resource tracker."""
-        self._resources: Dict[str, Any] = {}
+        self._resources: Dict[str, object] = {}
         self._lock = threading.Lock()
 
-    def register_resource(self, name: str, resource: Any) -> None:
+    def register_resource(self, name: str, resource: object) -> None:
         """
         Register a resource for tracking and potential cleanup.
 
@@ -458,7 +461,7 @@ class ResourceTracker:
                 del self._resources[name]
                 logger.debug("Unregistered resource: %s", name)
 
-    def get_resource(self, name: str) -> Optional[Any]:
+    def get_resource(self, name: str) -> Optional[object]:
         """
         Get a tracked resource by name.
 

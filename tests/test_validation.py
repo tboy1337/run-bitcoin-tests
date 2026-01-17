@@ -14,50 +14,50 @@ from run_bitcoin_tests.validation import (
 class TestValidateGitUrl:
     """Test validate_git_url function."""
 
-    def test_valid_https_url(self):
+    def test_valid_https_url(self) -> None:
         """Test valid HTTPS URL."""
         url = "https://github.com/bitcoin/bitcoin.git"
         result = validate_git_url(url)
         assert result == url
 
-    def test_valid_http_url(self):
+    def test_valid_http_url(self) -> None:
         """Test valid HTTP URL."""
         url = "http://github.com/bitcoin/bitcoin"
         result = validate_git_url(url)
         assert result == url
 
-    def test_valid_git_url(self):
+    def test_valid_git_url(self) -> None:
         """Test valid Git SSH URL."""
         url = "git@github.com:bitcoin/bitcoin.git"
         result = validate_git_url(url)
         assert result == url
 
-    def test_empty_url(self):
+    def test_empty_url(self) -> None:
         """Test empty URL."""
         with pytest.raises(ValidationError, match="Repository URL cannot be empty"):
             validate_git_url("")
 
-    def test_whitespace_only_url(self):
+    def test_whitespace_only_url(self) -> None:
         """Test whitespace-only URL."""
         with pytest.raises(ValidationError, match="Repository URL cannot be empty"):
             validate_git_url("   ")
 
-    def test_invalid_scheme(self):
+    def test_invalid_scheme(self) -> None:
         """Test URL with invalid scheme."""
         with pytest.raises(ValidationError, match="Repository URL must start with"):
             validate_git_url("ftp://example.com/repo.git")
 
-    def test_url_with_dangerous_characters(self):
+    def test_url_with_dangerous_characters(self) -> None:
         """Test URL containing dangerous characters."""
         with pytest.raises(ValidationError, match="contains invalid characters"):
             validate_git_url("https://github.com/bitcoin/bitcoin.git;rm -rf /")
 
-    def test_malformed_url(self):
+    def test_malformed_url(self) -> None:
         """Test malformed URL."""
         with pytest.raises(ValidationError, match="Invalid repository URL format"):
             validate_git_url("https://")
 
-    def test_url_without_domain(self):
+    def test_url_without_domain(self) -> None:
         """Test URL without domain."""
         with pytest.raises(ValidationError, match="must include a valid domain"):
             validate_git_url("https:///path")
@@ -66,55 +66,55 @@ class TestValidateGitUrl:
 class TestValidateBranchName:
     """Test validate_branch_name function."""
 
-    def test_valid_branch_name(self):
+    def test_valid_branch_name(self) -> None:
         """Test valid branch name."""
         branch = "feature/new-feature"
         result = validate_branch_name(branch)
         assert result == branch
 
-    def test_valid_simple_branch(self):
+    def test_valid_simple_branch(self) -> None:
         """Test simple valid branch name."""
         branch = "master"
         result = validate_branch_name(branch)
         assert result == branch
 
-    def test_valid_branch_with_numbers(self):
+    def test_valid_branch_with_numbers(self) -> None:
         """Test branch name with numbers."""
         branch = "v2.1.0"
         result = validate_branch_name(branch)
         assert result == branch
 
-    def test_empty_branch(self):
+    def test_empty_branch(self) -> None:
         """Test empty branch name."""
         with pytest.raises(ValidationError, match="Branch name cannot be empty"):
             validate_branch_name("")
 
-    def test_whitespace_branch(self):
+    def test_whitespace_branch(self) -> None:
         """Test whitespace-only branch name."""
         with pytest.raises(ValidationError, match="Branch name cannot be empty"):
             validate_branch_name("   ")
 
-    def test_branch_with_dangerous_chars(self):
+    def test_branch_with_dangerous_chars(self) -> None:
         """Test branch name with dangerous characters."""
         with pytest.raises(ValidationError, match="contains invalid characters"):
             validate_branch_name("feature;rm -rf /")
 
-    def test_branch_with_path_traversal(self):
+    def test_branch_with_path_traversal(self) -> None:
         """Test branch name with path traversal."""
         with pytest.raises(ValidationError, match="contains invalid path components"):
             validate_branch_name("../etc/passwd")
 
-    def test_branch_starting_with_dash(self):
+    def test_branch_starting_with_dash(self) -> None:
         """Test branch name starting with dash."""
         with pytest.raises(ValidationError, match="cannot start with a dash"):
             validate_branch_name("-evil-branch")
 
-    def test_branch_with_invalid_chars(self):
+    def test_branch_with_invalid_chars(self) -> None:
         """Test branch name with invalid characters."""
         with pytest.raises(ValidationError, match="contains invalid characters"):
             validate_branch_name("feature@branch")
 
-    def test_too_long_branch(self):
+    def test_too_long_branch(self) -> None:
         """Test branch name that is too long."""
         long_branch = "a" * 256
         with pytest.raises(ValidationError, match="too long"):
@@ -124,33 +124,33 @@ class TestValidateBranchName:
 class TestValidateFilePath:
     """Test validate_file_path function."""
 
-    def test_valid_relative_path(self):
+    def test_valid_relative_path(self) -> None:
         """Test valid relative path."""
         path = "relative/path/file.txt"
         result = validate_file_path(path)
         assert result == path
 
-    def test_empty_path(self):
+    def test_empty_path(self) -> None:
         """Test empty file path."""
         with pytest.raises(ValidationError, match="File path cannot be empty"):
             validate_file_path("")
 
-    def test_path_with_path_traversal(self):
+    def test_path_with_path_traversal(self) -> None:
         """Test path with traversal."""
         with pytest.raises(ValidationError, match="contains '..'"):
             validate_file_path("../etc/passwd")
 
-    def test_path_with_dangerous_chars(self):
+    def test_path_with_dangerous_chars(self) -> None:
         """Test path with dangerous characters."""
         with pytest.raises(ValidationError, match="contains invalid characters"):
             validate_file_path("file;rm -rf /")
 
-    def test_absolute_path_not_allowed(self):
+    def test_absolute_path_not_allowed(self) -> None:
         """Test absolute path when not allowed."""
         with pytest.raises(ValidationError, match="Absolute paths are not allowed"):
             validate_file_path("/absolute/path")
 
-    def test_absolute_path_allowed(self):
+    def test_absolute_path_allowed(self) -> None:
         """Test absolute path when allowed."""
         path = "/absolute/path"
         result = validate_file_path(path, allow_absolute=True)
@@ -160,23 +160,23 @@ class TestValidateFilePath:
 class TestSanitizeCommandArgs:
     """Test sanitize_command_args function."""
 
-    def test_valid_args(self):
+    def test_valid_args(self) -> None:
         """Test valid command arguments."""
         args = ["git", "clone", "repo"]
         result = sanitize_command_args(args)
         assert result == args
 
-    def test_non_list_input(self):
+    def test_non_list_input(self) -> None:
         """Test non-list input."""
         with pytest.raises(ValidationError, match="must be a list"):
             sanitize_command_args("not a list")
 
-    def test_non_string_arg(self):
+    def test_non_string_arg(self) -> None:
         """Test non-string argument."""
         with pytest.raises(ValidationError, match="must be strings"):
             sanitize_command_args(["git", 123])
 
-    def test_dangerous_args(self):
+    def test_dangerous_args(self) -> None:
         """Test arguments with dangerous characters."""
         with pytest.raises(ValidationError, match="dangerous characters"):
             sanitize_command_args(["git", "clone;rm -rf /"])

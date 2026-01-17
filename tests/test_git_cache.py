@@ -21,24 +21,24 @@ from run_bitcoin_tests.network_utils import GitCache, get_git_cache
 class TestGitCache:
     """Test cases for GitCache class."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.temp_dir = Path(tempfile.mkdtemp())
         self.cache = GitCache(cache_dir=str(self.temp_dir), max_cache_size_gb=1.0)
 
-    def teardown_method(self):
+    def teardown_method(self) -> None:
         """Clean up test fixtures."""
         if self.temp_dir.exists():
             shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def test_initialization(self):
+    def test_initialization(self) -> None:
         """Test GitCache initialization."""
         assert self.cache.cache_dir == self.temp_dir
         assert self.cache.max_cache_size_gb == 1.0
         # Metadata file may or may not exist initially
         assert self.cache._metadata == {}
 
-    def test_get_repo_hash(self):
+    def test_get_repo_hash(self) -> None:
         """Test repository hash generation."""
         repo_url = "https://github.com/bitcoin/bitcoin"
         branch = "master"
@@ -54,7 +54,7 @@ class TestGitCache:
         hash3 = self.cache._get_repo_hash(repo_url, "develop")
         assert hash1 != hash3
 
-    def test_get_cache_path(self):
+    def test_get_cache_path(self) -> None:
         """Test cache path generation."""
         repo_hash = "abcd1234abcd1234"
         cache_path = self.cache._get_cache_path(repo_hash)
@@ -62,7 +62,7 @@ class TestGitCache:
         assert cache_path == self.cache.cache_dir / repo_hash
         assert str(cache_path).endswith(repo_hash)
 
-    def test_load_save_metadata(self):
+    def test_load_save_metadata(self) -> None:
         """Test metadata loading and saving."""
         # Initially empty
         assert self.cache._metadata == {}
@@ -79,12 +79,12 @@ class TestGitCache:
         new_cache = GitCache(cache_dir=str(self.temp_dir))
         assert new_cache._metadata == test_metadata
 
-    def test_get_cached_repo_not_found(self):
+    def test_get_cached_repo_not_found(self) -> None:
         """Test getting cached repo when none exists."""
         result = self.cache.get_cached_repo("https://github.com/test/repo", "main")
         assert result is None
 
-    def test_get_cached_repo_invalid(self):
+    def test_get_cached_repo_invalid(self) -> None:
         """Test getting cached repo that's invalid."""
         repo_url = "https://github.com/test/repo"
         branch = "main"
@@ -104,7 +104,7 @@ class TestGitCache:
         assert result is None
 
     @patch("run_bitcoin_tests.network_utils.subprocess.run")
-    def test_get_cached_repo_valid(self, mock_run):
+    def test_get_cached_repo_valid(self, mock_run) -> None:
         """Test getting valid cached repository."""
         # Mock successful git operations
         mock_run.return_value = Mock(returncode=0)
@@ -129,7 +129,7 @@ class TestGitCache:
         assert result == cache_path
 
     @patch("run_bitcoin_tests.network_utils.shutil.copytree")
-    def test_cache_repo_success(self, mock_copytree):
+    def test_cache_repo_success(self, mock_copytree) -> None:
         """Test successful repository caching."""
         repo_url = "https://github.com/test/repo"
         branch = "main"
@@ -151,14 +151,14 @@ class TestGitCache:
         assert metadata["branch"] == branch
         assert "cached_at" in metadata
 
-    def test_cache_repo_failure(self):
+    def test_cache_repo_failure(self) -> None:
         """Test repository caching failure."""
         # Try to cache non-existent source
         source_path = self.temp_dir / "nonexistent"
         result = self.cache.cache_repo("https://github.com/test/repo", "main", source_path)
         assert result is False
 
-    def test_cleanup_old_cache(self):
+    def test_cleanup_old_cache(self) -> None:
         """Test cache cleanup when size limit exceeded."""
         # Create some fake cache entries
         for i in range(3):
@@ -199,7 +199,7 @@ class TestGitCache:
         finally:
             self.cache.max_cache_size_gb = original_limit
 
-    def test_clear_cache(self):
+    def test_clear_cache(self) -> None:
         """Test cache clearing."""
         # Add some fake entries
         for i in range(3):
@@ -234,7 +234,7 @@ class TestGitCache:
 class TestGitCacheSingleton:
     """Test GitCache singleton functionality."""
 
-    def test_get_git_cache_singleton(self):
+    def test_get_git_cache_singleton(self) -> None:
         """Test that get_git_cache returns singleton instances."""
         # Clear any existing instance
         import run_bitcoin_tests.network_utils as network_utils
@@ -247,7 +247,7 @@ class TestGitCacheSingleton:
         assert cache1 is cache2
         assert isinstance(cache1, GitCache)
 
-    def test_get_git_cache_custom_params(self):
+    def test_get_git_cache_custom_params(self) -> None:
         """Test get_git_cache with custom parameters."""
         # Since get_git_cache is a singleton, we need to test it differently
         # The first call with custom params should create the cache with those params
@@ -267,7 +267,7 @@ class TestGitCacheSingleton:
 class TestGitCacheIntegration:
     """Integration tests for GitCache with real filesystem operations."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up integration test fixtures."""
         self.temp_dir = Path(tempfile.mkdtemp())
         self.cache = GitCache(cache_dir=str(self.temp_dir / "cache"), max_cache_size_gb=1.0)
@@ -304,12 +304,12 @@ class TestGitCacheIntegration:
             capture_output=True,
         )
 
-    def teardown_method(self):
+    def teardown_method(self) -> None:
         """Clean up integration test fixtures."""
         if self.temp_dir.exists():
             shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def test_full_cache_workflow(self):
+    def test_full_cache_workflow(self) -> None:
         """Test complete cache workflow: miss -> cache -> hit."""
         repo_url = "https://github.com/test/repo"
         branch = "main"
@@ -331,7 +331,7 @@ class TestGitCacheIntegration:
     @pytest.mark.skipif(
         os.name == "nt", reason="Git cache integration tests have issues on Windows"
     )
-    def test_cache_validation(self):
+    def test_cache_validation(self) -> None:
         """Test that cached repositories are properly validated."""
         repo_url = "https://github.com/test/repo"
         branch = "main"
@@ -366,7 +366,7 @@ class TestGitCacheIntegration:
     @pytest.mark.skipif(
         os.name == "nt", reason="Git cache integration tests have issues on Windows"
     )
-    def test_different_branches(self):
+    def test_different_branches(self) -> None:
         """Test caching different branches separately."""
         repo_url = "https://github.com/test/repo"
 
@@ -396,17 +396,17 @@ class TestGitCacheIntegration:
 class TestGitCacheErrorHandling:
     """Test error handling in GitCache."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.temp_dir = Path(tempfile.mkdtemp())
         self.cache = GitCache(cache_dir=str(self.temp_dir), max_cache_size_gb=1.0)
 
-    def teardown_method(self):
+    def teardown_method(self) -> None:
         """Clean up test fixtures."""
         if self.temp_dir.exists():
             shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def test_corrupted_metadata_file(self):
+    def test_corrupted_metadata_file(self) -> None:
         """Test handling of corrupted metadata file."""
         # Write invalid JSON to metadata file
         with open(self.cache.cache_metadata_file, "w") as f:
@@ -416,14 +416,14 @@ class TestGitCacheErrorHandling:
         new_cache = GitCache(cache_dir=str(self.temp_dir))
         assert new_cache._metadata == {}
 
-    def test_metadata_save_failure(self):
+    def test_metadata_save_failure(self) -> None:
         """Test handling of metadata save failures."""
         # Make cache directory read-only (simulate save failure)
         with patch.object(self.cache, "_save_metadata", side_effect=OSError("Save failed")):
             # Should not raise exception
             self.cache.cache_repo("https://test.com/repo", "main", Path("/tmp/nonexistent"))
 
-    def test_cache_cleanup_error_handling(self):
+    def test_cache_cleanup_error_handling(self) -> None:
         """Test that cache cleanup handles errors gracefully."""
         # Add an entry with invalid path
         self.cache._metadata["invalid"] = {

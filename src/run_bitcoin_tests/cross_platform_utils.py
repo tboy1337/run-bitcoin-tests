@@ -35,7 +35,7 @@ class PlatformInfo:  # pylint: disable=too-many-instance-attributes
     ensuring consistent behavior across different operating systems.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize platform information."""
         self.system = platform.system().lower()
         self.machine = platform.machine().lower()
@@ -83,8 +83,9 @@ class PlatformInfo:  # pylint: disable=too-many-instance-attributes
             # Check if we're running in a Unicode-capable terminal
             try:
                 import ctypes  # pylint: disable=import-outside-toplevel
+                from typing import cast  # pylint: disable=import-outside-toplevel
 
-                kernel32 = ctypes.windll.kernel32
+                kernel32 = cast(ctypes.WinDLL, ctypes.windll.kernel32)
                 return bool(kernel32.GetConsoleOutputCP())
             except (AttributeError, OSError):
                 return False
@@ -127,7 +128,7 @@ class CrossPlatformCommand:
     ensuring consistent command execution across platforms.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize cross-platform command utilities."""
         self.platform = PlatformInfo()
 
@@ -208,7 +209,7 @@ class PathUtils:
     handling differences in path separators, case sensitivity, etc.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize path utilities."""
         self.platform = PlatformInfo()
 

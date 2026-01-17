@@ -48,7 +48,7 @@ import subprocess
 import threading
 import time
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 from urllib.parse import urlparse
 
 from .logging_config import get_logger
@@ -58,7 +58,7 @@ logger = get_logger(__name__)
 
 # Try to import colorama for colored output, fallback to plain text
 try:
-    from .main import Fore, print_colored
+    from .main import Fore, print_colored  # type: ignore[attr-defined]
 except ImportError:
 
     def print_colored(  # pylint: disable=unused-argument
@@ -67,7 +67,7 @@ except ImportError:
         """Fallback print_colored when colorama is not available."""
         print(message)
 
-    class Fore:  # pylint: disable=too-few-public-methods
+    class Fore:  # type: ignore[no-redef]  # pylint: disable=too-few-public-methods
         """Fallback Fore class when colorama is not available."""
 
         RED = ""
@@ -153,12 +153,13 @@ class GitCache:
                     cls._instance = cls(cache_dir, max_cache_size_gb)
         return cls._instance
 
-    def _load_metadata(self) -> Dict[str, Dict]:
+    def _load_metadata(self) -> Dict[str, Dict[str, Union[str, int, float]]]:
         """Load cache metadata from disk."""
         try:
             if self.cache_metadata_file.exists():
                 with open(self.cache_metadata_file, "r", encoding="utf-8") as file_obj:
-                    return json.load(file_obj)
+                    loaded: Dict[str, Dict[str, Union[str, int, float]]] = json.load(file_obj)
+                    return loaded
         except (json.JSONDecodeError, IOError) as exc:
             logging.warning("Failed to load cache metadata: %s", exc)
 

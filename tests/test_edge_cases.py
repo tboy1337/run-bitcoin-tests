@@ -19,7 +19,7 @@ from run_bitcoin_tests.main import (
 class TestEdgeCases:
     """Test edge cases and boundary conditions."""
 
-    def test_run_command_empty_command_list(self):
+    def test_run_command_empty_command_list(self) -> None:
         """Test run_command with empty command list."""
         with pytest.raises(SystemExit) as exc_info:
             run_command([], "Empty command")
@@ -27,7 +27,7 @@ class TestEdgeCases:
         assert exc_info.value.code == 1
 
     @patch("subprocess.run")
-    def test_run_command_with_special_characters(self, mock_run):
+    def test_run_command_with_special_characters(self, mock_run) -> None:
         """Test run_command with commands containing special characters."""
         mock_result = Mock()
         mock_result.returncode = 0
@@ -41,7 +41,7 @@ class TestEdgeCases:
         mock_run.assert_called_once_with(command, capture_output=False, text=True, check=False)
 
     @patch("run_bitcoin_tests.main.clone_bitcoin_repo_enhanced")
-    def test_clone_repo_with_unicode_branch_name(self, mock_clone_enhanced):
+    def test_clone_repo_with_unicode_branch_name(self, mock_clone_enhanced) -> None:
         """Test cloning with Unicode branch names."""
         # Mock the enhanced clone function
         mock_clone_enhanced.return_value = None
@@ -60,7 +60,7 @@ class TestEdgeCases:
     @patch("run_bitcoin_tests.main.get_config")
     @patch("run_bitcoin_tests.main.clone_bitcoin_repo")
     @patch("run_bitcoin_tests.main.Path")
-    def test_check_prerequisites_empty_repo_url(self, mock_path, mock_clone, mock_get_config):
+    def test_check_prerequisites_empty_repo_url(self, mock_path, mock_clone, mock_get_config) -> None:
         """Test check_prerequisites with empty repository URL."""
         mock_config = Mock()
         mock_config.docker.compose_file = "docker-compose.yml"
@@ -85,7 +85,7 @@ class TestEdgeCases:
     @patch("run_bitcoin_tests.main.get_config")
     @patch("run_bitcoin_tests.main.clone_bitcoin_repo")
     @patch("run_bitcoin_tests.main.Path")
-    def test_check_prerequisites_empty_branch(self, mock_path, mock_clone, mock_get_config):
+    def test_check_prerequisites_empty_branch(self, mock_path, mock_clone, mock_get_config) -> None:
         """Test check_prerequisites with empty branch name."""
         mock_config = Mock()
         mock_config.docker.compose_file = "docker-compose.yml"
@@ -108,7 +108,7 @@ class TestEdgeCases:
         mock_clone.assert_called_once_with("https://github.com/bitcoin/bitcoin", "")
 
     @patch("run_bitcoin_tests.main.run_command")
-    def test_build_docker_image_with_unicode_description(self, mock_run_command):
+    def test_build_docker_image_with_unicode_description(self, mock_run_command) -> None:
         """Test build_docker_image with unicode characters in internal description."""
         mock_result = Mock()
         mock_result.returncode = 0
@@ -122,7 +122,7 @@ class TestEdgeCases:
         assert "Build Docker image" == description
 
     @patch("run_bitcoin_tests.main.run_command")
-    def test_run_tests_with_unicode_description(self, mock_run_command):
+    def test_run_tests_with_unicode_description(self, mock_run_command) -> None:
         """Test run_tests with unicode characters in internal description."""
         mock_result = Mock()
         mock_result.returncode = 0
@@ -143,7 +143,7 @@ class TestEnvironmentVariables:
     @patch.dict(os.environ, {"DOCKER_HOST": "tcp://localhost:2376"})
     @patch("run_bitcoin_tests.main.get_config")
     @patch("run_bitcoin_tests.main.run_command")
-    def test_docker_with_custom_host(self, mock_run_command, mock_get_config):
+    def test_docker_with_custom_host(self, mock_run_command, mock_get_config) -> None:
         """Test that Docker commands work with custom DOCKER_HOST."""
         mock_config = Mock()
         mock_config.docker.compose_file = "docker-compose.yml"
@@ -165,7 +165,7 @@ class TestEnvironmentVariables:
     @patch.dict(os.environ, {"COMPOSE_FILE": "custom-compose.yml"})
     @patch("run_bitcoin_tests.main.get_config")
     @patch("run_bitcoin_tests.main.run_command")
-    def test_docker_compose_with_custom_file(self, mock_run_command, mock_get_config):
+    def test_docker_compose_with_custom_file(self, mock_run_command, mock_get_config) -> None:
         """Test that docker-compose works with custom COMPOSE_FILE."""
         mock_config = Mock()
         mock_config.docker.compose_file = "docker-compose.yml"
@@ -200,7 +200,7 @@ class TestFileSystemEdgeCases:
 
     @patch("run_bitcoin_tests.main.get_config")
     @patch("run_bitcoin_tests.main.Path")
-    def test_check_prerequisites_with_symlinks(self, mock_path, mock_get_config):
+    def test_check_prerequisites_with_symlinks(self, mock_path, mock_get_config) -> None:
         """Test prerequisites check with symlinked files."""
         mock_config = Mock()
         mock_config.docker.compose_file = "docker-compose.yml"
@@ -222,7 +222,7 @@ class TestFileSystemEdgeCases:
 
     @patch("run_bitcoin_tests.main.get_config")
     @patch("run_bitcoin_tests.main.Path")
-    def test_check_prerequisites_file_permissions(self, mock_path, mock_get_config):
+    def test_check_prerequisites_file_permissions(self, mock_path, mock_get_config) -> None:
         """Test prerequisites check when files exist but may not be readable."""
         mock_config = Mock()
         mock_config.docker.compose_file = "docker-compose.yml"
@@ -247,7 +247,7 @@ class TestConcurrencyEdgeCases:
     """Test edge cases that might occur in concurrent environments."""
 
     @patch("run_bitcoin_tests.main.run_command")
-    def test_multiple_docker_operations(self, mock_run_command):
+    def test_multiple_docker_operations(self, mock_run_command) -> None:
         """Test running multiple Docker operations in sequence."""
         mock_result = Mock()
         mock_result.returncode = 0
@@ -262,7 +262,7 @@ class TestConcurrencyEdgeCases:
         assert mock_run_command.call_count == 3
 
     @patch("run_bitcoin_tests.main.run_command")
-    def test_cleanup_called_multiple_times(self, mock_run_command):
+    def test_cleanup_called_multiple_times(self, mock_run_command) -> None:
         """Test that cleanup can be called multiple times safely."""
         from run_bitcoin_tests.main import cleanup_containers
 

@@ -6,7 +6,6 @@ functional tests alongside C++ unit tests.
 """
 
 import argparse
-from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -49,7 +48,7 @@ class TestExecutionConfig:
 class TestConfigManagerTestSuite:
     """Test ConfigManager handling of test suite configuration."""
 
-    def test_load_test_suite_from_env(self, monkeypatch: Any) -> None:
+    def test_load_test_suite_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test loading test suite configuration from environment variables."""
         monkeypatch.setenv("BTC_TEST_SUITE", "python")
         monkeypatch.setenv("BTC_PYTHON_TEST_SCOPE", "quick")
