@@ -180,7 +180,9 @@ class TestCheckPrerequisites:
     @patch("run_bitcoin_tests.main.clone_bitcoin_repo")
     @patch("run_bitcoin_tests.main.get_config")
     @patch("run_bitcoin_tests.main.Path")
-    def test_check_prerequisites_success(self, mock_path, mock_get_config, mock_clone, capsys) -> None:
+    def test_check_prerequisites_success(
+        self, mock_path, mock_get_config, mock_clone, capsys
+    ) -> None:
         """Test successful prerequisites check."""
         mock_config = Mock()
         mock_config.docker.compose_file = "docker-compose.yml"

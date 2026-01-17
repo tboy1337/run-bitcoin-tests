@@ -210,80 +210,108 @@ class ConfigManager:
         logger.debug("Loading configuration from environment variables")
 
         # Repository settings
-        self.config.repository.url = str(self._get_env_var("BTC_REPO_URL", self.config.repository.url))
-        self.config.repository.branch = str(self._get_env_var(
-            "BTC_REPO_BRANCH", self.config.repository.branch
-        ))
-        timeout_val = self._get_env_var("BTC_CLONE_TIMEOUT", self.config.repository.clone_timeout, int)
-        self.config.repository.clone_timeout = int(timeout_val) if isinstance(timeout_val, (int, float, str)) else 0
-        retries_val = self._get_env_var("BTC_CLONE_RETRIES", self.config.repository.clone_retries, int)
-        self.config.repository.clone_retries = int(retries_val) if isinstance(retries_val, (int, float, str)) else 0
-        self.config.repository.shallow_clone = bool(self._get_env_var(
-            "BTC_SHALLOW_CLONE", self.config.repository.shallow_clone, bool
-        ))
+        self.config.repository.url = str(
+            self._get_env_var("BTC_REPO_URL", self.config.repository.url)
+        )
+        self.config.repository.branch = str(
+            self._get_env_var("BTC_REPO_BRANCH", self.config.repository.branch)
+        )
+        timeout_val = self._get_env_var(
+            "BTC_CLONE_TIMEOUT", self.config.repository.clone_timeout, int
+        )
+        self.config.repository.clone_timeout = (
+            int(timeout_val) if isinstance(timeout_val, (int, float, str)) else 0
+        )
+        retries_val = self._get_env_var(
+            "BTC_CLONE_RETRIES", self.config.repository.clone_retries, int
+        )
+        self.config.repository.clone_retries = (
+            int(retries_val) if isinstance(retries_val, (int, float, str)) else 0
+        )
+        self.config.repository.shallow_clone = bool(
+            self._get_env_var("BTC_SHALLOW_CLONE", self.config.repository.shallow_clone, bool)
+        )
 
         # Build settings
         self.config.build.type = str(self._get_env_var("BTC_BUILD_TYPE", self.config.build.type))
         result = self._get_env_var("BTC_BUILD_JOBS", self.config.build.parallel_jobs, int)
-        self.config.build.parallel_jobs = int(result) if isinstance(result, (int, float, str)) and result is not None else None
-        self.config.build.enable_tests = bool(self._get_env_var(
-            "BTC_ENABLE_TESTS", self.config.build.enable_tests, bool
-        ))
+        self.config.build.parallel_jobs = (
+            int(result) if isinstance(result, (int, float, str)) and result is not None else None
+        )
+        self.config.build.enable_tests = bool(
+            self._get_env_var("BTC_ENABLE_TESTS", self.config.build.enable_tests, bool)
+        )
 
         # Docker settings
-        self.config.docker.compose_file = str(self._get_env_var(
-            "BTC_COMPOSE_FILE", self.config.docker.compose_file
-        ))
-        self.config.docker.container_name = str(self._get_env_var(
-            "BTC_CONTAINER_NAME", self.config.docker.container_name
-        ))
-        self.config.docker.keep_containers = bool(self._get_env_var(
-            "BTC_KEEP_CONTAINERS", self.config.docker.keep_containers, bool
-        ))
+        self.config.docker.compose_file = str(
+            self._get_env_var("BTC_COMPOSE_FILE", self.config.docker.compose_file)
+        )
+        self.config.docker.container_name = str(
+            self._get_env_var("BTC_CONTAINER_NAME", self.config.docker.container_name)
+        )
+        self.config.docker.keep_containers = bool(
+            self._get_env_var("BTC_KEEP_CONTAINERS", self.config.docker.keep_containers, bool)
+        )
         result = self._get_env_var("DOCKER_HOST", self.config.docker.docker_host)
         self.config.docker.docker_host = str(result) if result is not None else None
 
         # Network settings
         net_timeout_val = self._get_env_var("BTC_NETWORK_TIMEOUT", self.config.network.timeout, int)
-        self.config.network.timeout = int(net_timeout_val) if isinstance(net_timeout_val, (int, float, str)) else 0
+        self.config.network.timeout = (
+            int(net_timeout_val) if isinstance(net_timeout_val, (int, float, str)) else 0
+        )
         net_retries_val = self._get_env_var("BTC_NETWORK_RETRIES", self.config.network.retries, int)
-        self.config.network.retries = int(net_retries_val) if isinstance(net_retries_val, (int, float, str)) else 0
+        self.config.network.retries = (
+            int(net_retries_val) if isinstance(net_retries_val, (int, float, str)) else 0
+        )
         result1 = self._get_env_var("HTTPS_PROXY", self.config.network.proxy)
         result2 = self._get_env_var("HTTP_PROXY", self.config.network.proxy)
         self.config.network.proxy = str(result1) if result1 else (str(result2) if result2 else None)
 
         # Test settings
         test_timeout_val = self._get_env_var("BTC_TEST_TIMEOUT", self.config.test.timeout, int)
-        self.config.test.timeout = int(test_timeout_val) if isinstance(test_timeout_val, (int, float, str)) else 0
-        self.config.test.parallel = bool(self._get_env_var(
-            "BTC_TEST_PARALLEL", self.config.test.parallel, bool
-        ))
+        self.config.test.timeout = (
+            int(test_timeout_val) if isinstance(test_timeout_val, (int, float, str)) else 0
+        )
+        self.config.test.parallel = bool(
+            self._get_env_var("BTC_TEST_PARALLEL", self.config.test.parallel, bool)
+        )
         result = self._get_env_var("BTC_TEST_JOBS", self.config.test.parallel_jobs, int)
-        self.config.test.parallel_jobs = int(result) if isinstance(result, (int, float, str)) and result is not None else None
-        self.config.test.test_suite = str(self._get_env_var(
-            "BTC_TEST_SUITE", self.config.test.test_suite
-        ))
-        self.config.test.python_test_scope = str(self._get_env_var(
-            "BTC_PYTHON_TEST_SCOPE", self.config.test.python_test_scope
-        ))
-        py_test_jobs_val = self._get_env_var("BTC_PYTHON_TEST_JOBS", self.config.test.python_test_jobs, int)
-        self.config.test.python_test_jobs = int(py_test_jobs_val) if isinstance(py_test_jobs_val, (int, float, str)) else 0
-        self.config.test.cpp_test_args = str(self._get_env_var(
-            "BTC_CPP_TEST_ARGS", self.config.test.cpp_test_args
-        ))
-        self.config.test.python_test_args = str(self._get_env_var(
-            "BTC_PYTHON_TEST_ARGS", self.config.test.python_test_args
-        ))
+        self.config.test.parallel_jobs = (
+            int(result) if isinstance(result, (int, float, str)) and result is not None else None
+        )
+        self.config.test.test_suite = str(
+            self._get_env_var("BTC_TEST_SUITE", self.config.test.test_suite)
+        )
+        self.config.test.python_test_scope = str(
+            self._get_env_var("BTC_PYTHON_TEST_SCOPE", self.config.test.python_test_scope)
+        )
+        py_test_jobs_val = self._get_env_var(
+            "BTC_PYTHON_TEST_JOBS", self.config.test.python_test_jobs, int
+        )
+        self.config.test.python_test_jobs = (
+            int(py_test_jobs_val) if isinstance(py_test_jobs_val, (int, float, str)) else 0
+        )
+        self.config.test.cpp_test_args = str(
+            self._get_env_var("BTC_CPP_TEST_ARGS", self.config.test.cpp_test_args)
+        )
+        self.config.test.python_test_args = str(
+            self._get_env_var("BTC_PYTHON_TEST_ARGS", self.config.test.python_test_args)
+        )
 
         # Logging settings
-        self.config.logging.level = str(self._get_env_var("BTC_LOG_LEVEL", self.config.logging.level))
+        self.config.logging.level = str(
+            self._get_env_var("BTC_LOG_LEVEL", self.config.logging.level)
+        )
         result = self._get_env_var("BTC_LOG_FILE", self.config.logging.file)
         self.config.logging.file = str(result) if result is not None else None
 
         # Security settings
-        self.config.security.allow_insecure_ssl = bool(self._get_env_var(
-            "BTC_ALLOW_INSECURE_SSL", self.config.security.allow_insecure_ssl, bool
-        ))
+        self.config.security.allow_insecure_ssl = bool(
+            self._get_env_var(
+                "BTC_ALLOW_INSECURE_SSL", self.config.security.allow_insecure_ssl, bool
+            )
+        )
 
         # Application settings
         self.config.debug = bool(self._get_env_var("BTC_DEBUG", self.config.debug, bool))
@@ -345,7 +373,10 @@ class ConfigManager:
     # This is a pragmatic choice given the variety of types handled
 
     def _get_env_var(
-        self, name: str, default: Union[bool, int, float, str, List[str], None], var_type: type = str
+        self,
+        name: str,
+        default: Union[bool, int, float, str, List[str], None],
+        var_type: type = str,
     ) -> Union[bool, int, float, str, List[str], None]:
         """Get environment variable with type conversion."""
         value = os.environ.get(name)

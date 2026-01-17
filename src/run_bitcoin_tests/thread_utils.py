@@ -47,7 +47,7 @@ from .logging_config import get_logger
 logger = get_logger(__name__)
 
 # Type variable for resource tracking
-T = TypeVar('T')
+T = TypeVar("T")
 
 # Global locks for shared resources
 _docker_lock = threading.RLock()
@@ -225,7 +225,9 @@ def file_system_lock(operation: str = "file_operation") -> Generator[None, None,
 
 
 @contextmanager
-def atomic_directory_operation(directory: Path, operation: str = "directory_op") -> Generator[Path, None, None]:
+def atomic_directory_operation(
+    directory: Path, operation: str = "directory_op"
+) -> Generator[Path, None, None]:
     """
     Context manager for atomic directory operations with thread safety.
 
@@ -274,7 +276,9 @@ def atomic_directory_operation(directory: Path, operation: str = "directory_op")
 
 
 @contextmanager
-def thread_safe_temp_dir(prefix: str = "bitcoin_tests_", suffix: str = "") -> Generator[Path, None, None]:
+def thread_safe_temp_dir(
+    prefix: str = "bitcoin_tests_", suffix: str = ""
+) -> Generator[Path, None, None]:
     """
     Create a thread-safe temporary directory with automatic cleanup.
 
@@ -331,7 +335,9 @@ def thread_safe_temp_dir(prefix: str = "bitcoin_tests_", suffix: str = "") -> Ge
 
 
 @contextmanager
-def exclusive_file_operation(file_path: Path, mode: str = "r", operation: str = "file_access") -> Generator[IO[str], None, None]:
+def exclusive_file_operation(
+    file_path: Path, mode: str = "r", operation: str = "file_access"
+) -> Generator[IO[str], None, None]:
     """
     Context manager for exclusive file operations.
 

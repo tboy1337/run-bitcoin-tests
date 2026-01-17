@@ -60,7 +60,9 @@ class TestEdgeCases:
     @patch("run_bitcoin_tests.main.get_config")
     @patch("run_bitcoin_tests.main.clone_bitcoin_repo")
     @patch("run_bitcoin_tests.main.Path")
-    def test_check_prerequisites_empty_repo_url(self, mock_path, mock_clone, mock_get_config) -> None:
+    def test_check_prerequisites_empty_repo_url(
+        self, mock_path, mock_clone, mock_get_config
+    ) -> None:
         """Test check_prerequisites with empty repository URL."""
         mock_config = Mock()
         mock_config.docker.compose_file = "docker-compose.yml"

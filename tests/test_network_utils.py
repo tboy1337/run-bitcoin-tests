@@ -115,7 +115,7 @@ class TestRunGitCommandWithRetry:
     def test_max_retries_exceeded(self, mock_run) -> None:
         """Test when max retries are exceeded."""
         from run_bitcoin_tests.network_utils import NetworkConnectionError
-        
+
         mock_result = Mock()
         mock_result.returncode = 128
         mock_result.stderr = "fatal: unable to access 'https://github.com/repo.git/': Could not resolve host: github.com"
@@ -282,7 +282,9 @@ class TestGitCache:
     @patch("builtins.open")
     @patch("json.load")
     @patch("pathlib.Path.mkdir")  # Prevent directory creation during test
-    def test_load_metadata_success(self, mock_mkdir, mock_json_load, mock_open, mock_exists) -> None:
+    def test_load_metadata_success(
+        self, mock_mkdir, mock_json_load, mock_open, mock_exists
+    ) -> None:
         """Test loading metadata successfully."""
         mock_exists.return_value = True
         mock_json_load.return_value = {"test": "data"}

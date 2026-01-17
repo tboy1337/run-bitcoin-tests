@@ -28,7 +28,7 @@ from typing import Callable, Dict, List, Optional, Tuple, TypeVar, Union
 
 import psutil
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,9 @@ class PerformanceMonitor:
         self.interval = interval
         self._monitoring = False
         self._thread: Optional[threading.Thread] = None
-        self._metrics: List[Dict[str, Union[float, int, str, None, Tuple[float, float, float]]]] = []
+        self._metrics: List[Dict[str, Union[float, int, str, None, Tuple[float, float, float]]]] = (
+            []
+        )
         self._lock = threading.Lock()
 
     def start_monitoring(self) -> None:
@@ -64,7 +66,9 @@ class PerformanceMonitor:
         self._thread.start()
         logger.debug("Performance monitoring started")
 
-    def stop_monitoring(self) -> List[Dict[str, Union[float, int, str, None, Tuple[float, float, float]]]]:
+    def stop_monitoring(
+        self,
+    ) -> List[Dict[str, Union[float, int, str, None, Tuple[float, float, float]]]]:
         """Stop monitoring and return collected metrics."""
         if not self._monitoring:
             return self._metrics.copy()
@@ -92,7 +96,9 @@ class PerformanceMonitor:
 
             time.sleep(self.interval)
 
-    def _collect_metrics(self) -> Dict[str, Union[float, int, str, None, Tuple[float, float, float]]]:
+    def _collect_metrics(
+        self,
+    ) -> Dict[str, Union[float, int, str, None, Tuple[float, float, float]]]:
         """Collect current system performance metrics."""
         try:
             cpu_percent = psutil.cpu_percent(interval=None)
@@ -165,7 +171,7 @@ class ResourceOptimizer:
                 pass
             else:
                 # On Unix-like systems, try to set nice level
-                if hasattr(os, 'nice'):
+                if hasattr(os, "nice"):
                     os.nice(-5)  # Slightly higher priority
         except Exception:
             pass  # Ignore if we can't set priority
@@ -360,8 +366,16 @@ def with_performance_monitoring(func: Callable[..., T]) -> Callable[..., T]:  # 
         finally:
             metrics = monitor.stop_monitoring()
             if metrics:
-                cpu_metrics = [float(m["cpu_percent"]) for m in metrics if "cpu_percent" in m and isinstance(m["cpu_percent"], (int, float))]
-                memory_metrics = [float(m["memory_percent"]) for m in metrics if "memory_percent" in m and isinstance(m["memory_percent"], (int, float))]
+                cpu_metrics = [
+                    float(m["cpu_percent"])
+                    for m in metrics
+                    if "cpu_percent" in m and isinstance(m["cpu_percent"], (int, float))
+                ]
+                memory_metrics = [
+                    float(m["memory_percent"])
+                    for m in metrics
+                    if "memory_percent" in m and isinstance(m["memory_percent"], (int, float))
+                ]
                 if cpu_metrics and memory_metrics:
                     avg_cpu = sum(cpu_metrics) / len(cpu_metrics)
                     avg_memory = sum(memory_metrics) / len(memory_metrics)

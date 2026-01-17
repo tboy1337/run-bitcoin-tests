@@ -541,9 +541,7 @@ def run_git_command_with_retry(
                     )
                     time.sleep(retry_delay)
                     continue
-                raise RuntimeError(
-                    f"Git command failed after {max_retries} attempts: {error_msg}"
-                )
+                raise RuntimeError(f"Git command failed after {max_retries} attempts: {error_msg}")
 
             # Success!
             logger.debug("Git command completed successfully: %s", description)
@@ -551,9 +549,7 @@ def run_git_command_with_retry(
 
         except subprocess.TimeoutExpired:
             if attempt < max_retries - 1:
-                logger.warning(
-                    "Git command timed out (attempt %s/%s)", attempt + 1, max_retries
-                )
+                logger.warning("Git command timed out (attempt %s/%s)", attempt + 1, max_retries)
                 print_colored(
                     f"Operation timed out, retrying in {retry_delay} seconds...", Fore.YELLOW
                 )
@@ -709,7 +705,9 @@ def clone_bitcoin_repo_enhanced(
 
                     # Ensure we're on the correct branch
                     run_git_command_with_retry(
-                        ["git", "checkout", branch], f"Switch to branch {branch}", cwd=str(target_path)
+                        ["git", "checkout", branch],
+                        f"Switch to branch {branch}",
+                        cwd=str(target_path),
                     )
 
                     print_colored(
