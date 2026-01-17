@@ -188,8 +188,7 @@ class TestEnvironmentVariables:
                 "-f",
                 "docker-compose.yml",
                 "build",
-                "--no-cache-filter",
-                "bitcoin-deps",
+                "bitcoin-tests",
             ],
             "Build Docker image",
         )

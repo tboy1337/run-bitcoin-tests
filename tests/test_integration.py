@@ -41,6 +41,15 @@ class TestIntegration:
         mock_args.no_cache = False
         mock_args.performance_monitor = False
         mock_args.dry_run = False
+        mock_args.build_jobs = None
+        mock_args.build_type = None
+        mock_args.test_suite = None
+        mock_args.cpp_only = False
+        mock_args.python_only = False
+        mock_args.python_tests = None
+        mock_args.python_jobs = None
+        mock_args.exclude_test = None
+        mock_args.keep_containers = False
         mock_parse_args.return_value = mock_args
 
         mock_run_tests.return_value = 0
@@ -87,6 +96,15 @@ class TestIntegration:
         mock_args.no_cache = False
         mock_args.performance_monitor = False
         mock_args.dry_run = False
+        mock_args.build_jobs = None
+        mock_args.build_type = None
+        mock_args.test_suite = None
+        mock_args.cpp_only = False
+        mock_args.python_only = False
+        mock_args.python_tests = None
+        mock_args.python_jobs = None
+        mock_args.exclude_test = None
+        mock_args.keep_containers = False
         mock_parse_args.return_value = mock_args
 
         mock_run_tests.return_value = 0
@@ -115,7 +133,7 @@ class TestCommandLineInterface:
         )
 
         assert result.returncode == 0
-        assert "Run Bitcoin Core C++ unit tests in Docker" in result.stdout
+        assert "Run Bitcoin Core tests (C++ unit tests and Python functional tests) in Docker" in result.stdout
         assert "--repo-url" in result.stdout
         assert "--branch" in result.stdout
 
@@ -129,7 +147,7 @@ class TestCommandLineInterface:
         )
 
         assert result.returncode == 0
-        assert "Run Bitcoin Core C++ unit tests in Docker" in result.stdout
+        assert "Run Bitcoin Core tests (C++ unit tests and Python functional tests) in Docker" in result.stdout
 
 
 class TestErrorScenarios:
@@ -165,7 +183,17 @@ class TestErrorScenarios:
         # Similar to above - testing the function behavior directly
         from run_bitcoin_tests.main import build_docker_image
 
-        with patch("run_bitcoin_tests.main.run_command") as mock_run, pytest.raises(SystemExit):
+        with patch("run_bitcoin_tests.main.run_command") as mock_run, \
+             patch("run_bitcoin_tests.main.get_config") as mock_get_config, \
+             pytest.raises(SystemExit):
+            # Setup mock config
+            mock_config = Mock()
+            mock_config.quiet = False
+            mock_config.docker.container_name = "bitcoin-tests"
+            mock_config.docker.compose_file = "docker-compose.yml"
+            mock_config.build.parallel_jobs = None
+            mock_get_config.return_value = mock_config
+            
             mock_result = Mock()
             mock_result.returncode = 1  # Simulate build failure
             mock_run.return_value = mock_result

@@ -72,3 +72,21 @@ def reset_modules() -> Generator[None, None, None]:
     # Restore original modules
     for module, original in original_modules.items():
         sys.modules[module] = original
+
+
+@pytest.fixture(autouse=True)
+def reset_config() -> Generator[None, None, None]:
+    """Reset the global config manager between tests to ensure clean state."""
+    # Import here to avoid import-time side effects
+    from run_bitcoin_tests import config as config_module
+
+    # Store original config
+    original_config_manager = config_module.config_manager
+
+    # Create a fresh config manager for the test
+    config_module.config_manager = config_module.ConfigManager()
+
+    yield
+
+    # Restore original config manager
+    config_module.config_manager = original_config_manager

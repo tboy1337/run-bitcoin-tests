@@ -114,12 +114,14 @@ class TestRunGitCommandWithRetry:
     @patch("subprocess.run")
     def test_max_retries_exceeded(self, mock_run) -> None:
         """Test when max retries are exceeded."""
+        from run_bitcoin_tests.network_utils import NetworkConnectionError
+        
         mock_result = Mock()
         mock_result.returncode = 128
         mock_result.stderr = "fatal: unable to access 'https://github.com/repo.git/': Could not resolve host: github.com"
         mock_run.return_value = mock_result
 
-        with pytest.raises(ConnectionError):
+        with pytest.raises(NetworkConnectionError):
             run_git_command_with_retry(
                 ["git", "clone", "repo"], "Clone repository", max_retries=2, retry_delay=0
             )

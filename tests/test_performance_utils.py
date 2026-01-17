@@ -195,7 +195,7 @@ class TestResourceOptimizer:
         # Should fallback to conservative default: max(1, 4 // 2) = 2
         assert optimal == 2
 
-    @patch("run_bitcoin_tests.performance_utils.platform.system", return_value="Linux")
+    @patch("platform.system", return_value="Linux")
     def test_optimize_process_priority_linux(self, mock_platform) -> None:
         """Test process priority optimization on Linux."""
         import sys
@@ -206,13 +206,13 @@ class TestResourceOptimizer:
             ResourceOptimizer.optimize_process_priority()
             mock_nice.assert_called_once_with(-5)
 
-    @patch("run_bitcoin_tests.performance_utils.platform.system", return_value="Windows")
+    @patch("platform.system", return_value="Windows")
     def test_optimize_process_priority_windows(self, mock_platform) -> None:
         """Test process priority optimization on Windows (should do nothing)."""
         ResourceOptimizer.optimize_process_priority()
         # Should not attempt to change priority on Windows
 
-    @patch("run_bitcoin_tests.performance_utils.platform.system", return_value="Linux")
+    @patch("platform.system", return_value="Linux")
     def test_optimize_process_priority_exception(self, mock_platform) -> None:
         """Test optimize_process_priority handles exceptions gracefully."""
         import sys
@@ -223,7 +223,7 @@ class TestResourceOptimizer:
             # Should not raise exception
             ResourceOptimizer.optimize_process_priority()
 
-    @patch("run_bitcoin_tests.performance_utils.gc.collect")
+    @patch("gc.collect")
     def test_cleanup_memory(self, mock_gc) -> None:
         """Test memory cleanup."""
         ResourceOptimizer.cleanup_memory()
@@ -237,8 +237,8 @@ class TestResourceOptimizer:
     @patch("run_bitcoin_tests.performance_utils.psutil.virtual_memory")
     @patch("run_bitcoin_tests.performance_utils.psutil.cpu_freq")
     @patch("run_bitcoin_tests.performance_utils.multiprocessing.cpu_count", return_value=4)
-    @patch("run_bitcoin_tests.performance_utils.platform.platform", return_value="Linux-5.4.0")
-    @patch("run_bitcoin_tests.performance_utils.platform.python_version", return_value="3.9.0")
+    @patch("platform.platform", return_value="Linux-5.4.0")
+    @patch("platform.python_version", return_value="3.9.0")
     def test_get_system_info(
         self,
         mock_py_version,
