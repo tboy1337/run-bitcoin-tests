@@ -13,10 +13,6 @@ Docker-based solution to run Bitcoin Core C++ unit tests and Python functional t
 ### Installation
 
 ```bash
-# Install from PyPI (recommended)
-pip install run-bitcoin-tests
-
-# Or install from source
 git clone https://github.com/tboy1337/run-bitcoin-tests
 cd run-bitcoin-tests
 pip install -e .

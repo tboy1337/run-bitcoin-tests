@@ -12,7 +12,7 @@ Requirements:
 - colorama (optional, for colored output)
 """
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 __author__ = "tboy1337"
 __license__ = "MIT"
 

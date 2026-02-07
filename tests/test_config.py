@@ -53,7 +53,7 @@ class TestConfigDataClasses:
     def test_app_config_defaults(self) -> None:
         """Test AppConfig default values."""
         config = AppConfig()
-        assert config.version == "1.0.0"
+        assert config.version == "1.0.1"
         assert config.debug is False
         assert config.dry_run is False
         assert isinstance(config.repository, RepositoryConfig)

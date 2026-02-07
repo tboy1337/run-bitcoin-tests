@@ -11,7 +11,7 @@ run_bitcoin_tests = ["py.typed"]
 
 [project]
 name = "run-bitcoin-tests"
-version = "1.0.0"
+version = "1.0.1"
 description = "A cross-platform Python script to run Bitcoin Core C++ unit tests using Docker"
 readme = "README.md"
 license = "MIT"
@@ -63,7 +63,7 @@ dev = [
 
     # Linting
     "pylint>=2.15.0",
-    "mypy>=1.0.0",
+    "mypy>=1.0.1",
     "autopep8>=2.0.0",
 
     # Performance monitoring

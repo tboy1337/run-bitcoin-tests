@@ -174,7 +174,7 @@ class AppConfig:  # pylint: disable=too-many-instance-attributes
     bitcoin: BitcoinConfig = field(default_factory=BitcoinConfig)
 
     # Application metadata
-    version: str = "1.0.0"
+    version: str = "1.0.1"
     debug: bool = False
     dry_run: bool = False
     verbose: bool = False
